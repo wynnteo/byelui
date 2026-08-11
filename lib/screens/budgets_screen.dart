@@ -67,7 +67,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = _dataService.getCategories(type: TransactionType.expense);
     final progress = _dataService.budgetProgress(scope: _scope);
     final base = _dataService.baseCurrency;
 
@@ -77,6 +76,17 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       }
       return null;
     }
+
+    final categories = _dataService.getCategories(type: TransactionType.expense)..sort((a, b) {
+      final pa = progressFor(a.id);
+      final pb = progressFor(b.id);
+      if (pa != null && pb == null) return -1;
+      if (pa == null && pb != null) return 1;
+      if (pa != null && pb != null) {
+        return (pb['percent'] as double).compareTo(pa['percent'] as double);
+      }
+      return a.name.compareTo(b.name);
+    });
 
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,

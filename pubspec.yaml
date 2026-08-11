@@ -57,6 +57,7 @@ dependencies:
   csv: any
   pdf: any
   share_plus: any
+  file_picker: any
 
   # Localization
   flutter_localizations:

@@ -506,10 +506,19 @@ class DataService {
   }
 
   /// Spent-vs-limit for every budget in the current month, converted to base currency.
+  /// Each budget is compared against spend filtered by *that budget's own*
+  /// scope (not the outer scope filter) — otherwise a Personal-only budget
+  /// could be flagged as over limit by combined Personal+Family spending.
   List<Map<String, dynamic>> budgetProgress({TransactionScope? scope}) {
     final now = DateTime.now();
-    final spendByCategory = categoryBreakdown(now.year, now.month, scope: scope);
-    return getBudgets(scope: scope).map((b) {
+    final budgets = getBudgets(scope: scope);
+    final spendCache = <TransactionScope, Map<String, double>>{};
+
+    return budgets.map((b) {
+      final spendByCategory = spendCache.putIfAbsent(
+        b.scope,
+        () => categoryBreakdown(now.year, now.month, scope: b.scope),
+      );
       final spent = spendByCategory[b.categoryId] ?? 0;
       return {
         'budget': b,
@@ -571,5 +580,162 @@ class DataService {
       'incomeChangePct': pctChange(current['income'] ?? 0, previous['income'] ?? 0),
       'expenseChangePct': pctChange(current['expense'] ?? 0, previous['expense'] ?? 0),
     };
+  }
+
+  // ---- Full data backup / restore ----
+  // Note: photo files themselves are NOT included, only their stored local
+  // path — receipt photos won't carry over to a new device, only the
+  // transaction data. Transactions will just show without a photo after
+  // restoring elsewhere.
+
+  Map<String, dynamic> exportAllData() {
+    return {
+      'exportVersion': '1.0',
+      'exportDate': DateTime.now().toIso8601String(),
+      'transactions': _transactionsBoxSafe.values.map((t) => {
+            'id': t.id,
+            'amount': t.amount,
+            'currency': t.currency,
+            'type': t.type.toJson(),
+            'scope': t.scope.toJson(),
+            'categoryId': t.categoryId,
+            'date': t.date.toIso8601String(),
+            'description': t.description,
+            'note': t.note,
+            'photoPath': t.photoPath,
+            'paymentMethod': t.paymentMethod?.toJson(),
+            'createdAt': t.createdAt.toIso8601String(),
+            'updatedAt': t.updatedAt.toIso8601String(),
+            'tags': t.tags,
+          }).toList(),
+      'categories': _categoriesBoxSafe.values.map((c) => {
+            'id': c.id,
+            'name': c.name,
+            'iconName': c.iconName,
+            'colorValue': c.colorValue,
+            'type': c.type.toJson(),
+            'isDefault': c.isDefault,
+          }).toList(),
+      'recurringTransactions': _recurringBoxSafe.values.map((r) => {
+            'id': r.id,
+            'amount': r.amount,
+            'currency': r.currency,
+            'type': r.type.toJson(),
+            'scope': r.scope.toJson(),
+            'categoryId': r.categoryId,
+            'description': r.description,
+            'note': r.note,
+            'frequency': r.frequency.name,
+            'startDate': r.startDate.toIso8601String(),
+            'nextDueDate': r.nextDueDate?.toIso8601String(),
+            'endDate': r.endDate?.toIso8601String(),
+            'isActive': r.isActive,
+            'paymentMethod': r.paymentMethod?.toJson(),
+          }).toList(),
+      'budgets': _budgetsBoxSafe.values.map((b) => {
+            'id': b.id,
+            'categoryId': b.categoryId,
+            'monthlyLimit': b.monthlyLimit,
+            'scope': b.scope.toJson(),
+          }).toList(),
+      'settings': {
+        'baseCurrency': baseCurrency,
+        'tagKeywords': _tagKeywords,
+      },
+    };
+  }
+
+  /// Validates a backup map has the expected top-level shape before import.
+  bool isValidBackup(Map<String, dynamic> data) {
+    return data.containsKey('exportVersion') &&
+        data['transactions'] is List &&
+        data['categories'] is List;
+  }
+
+  /// Replaces ALL local data with the contents of a backup. Irreversible —
+  /// callers should confirm with the user first.
+  Future<void> importAllData(Map<String, dynamic> data) async {
+    await _transactionsBoxSafe.clear();
+    await _categoriesBoxSafe.clear();
+    await _recurringBoxSafe.clear();
+    await _budgetsBoxSafe.clear();
+
+    for (final raw in (data['categories'] as List? ?? [])) {
+      final c = Map<String, dynamic>.from(raw as Map);
+      final category = Category(
+        id: c['id'],
+        name: c['name'],
+        iconName: c['iconName'],
+        colorValue: c['colorValue'],
+        type: TransactionType.fromJson(c['type']),
+        isDefault: c['isDefault'] ?? false,
+      );
+      await _categoriesBoxSafe.put(category.id, category);
+    }
+
+    for (final raw in (data['transactions'] as List? ?? [])) {
+      final t = Map<String, dynamic>.from(raw as Map);
+      final txn = Transaction(
+        id: t['id'],
+        amount: (t['amount'] as num).toDouble(),
+        currency: t['currency'],
+        type: TransactionType.fromJson(t['type']),
+        scope: TransactionScope.fromJson(t['scope']),
+        categoryId: t['categoryId'],
+        date: DateTime.parse(t['date']),
+        description: t['description'],
+        note: t['note'],
+        photoPath: t['photoPath'],
+        paymentMethod: t['paymentMethod'] != null ? PaymentMethod.fromJson(t['paymentMethod']) : null,
+        createdAt: DateTime.parse(t['createdAt']),
+        updatedAt: DateTime.parse(t['updatedAt']),
+        tags: (t['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      );
+      await _transactionsBoxSafe.put(txn.id, txn);
+    }
+
+    for (final raw in (data['recurringTransactions'] as List? ?? [])) {
+      final r = Map<String, dynamic>.from(raw as Map);
+      final rec = RecurringTransaction(
+        id: r['id'],
+        amount: (r['amount'] as num).toDouble(),
+        currency: r['currency'],
+        type: TransactionType.fromJson(r['type']),
+        scope: TransactionScope.fromJson(r['scope']),
+        categoryId: r['categoryId'],
+        description: r['description'],
+        note: r['note'],
+        frequency: RecurrenceFrequency.values.firstWhere(
+          (f) => f.name == r['frequency'],
+          orElse: () => RecurrenceFrequency.monthly,
+        ),
+        startDate: DateTime.parse(r['startDate']),
+        nextDueDate: r['nextDueDate'] != null ? DateTime.parse(r['nextDueDate']) : null,
+        endDate: r['endDate'] != null ? DateTime.parse(r['endDate']) : null,
+        isActive: r['isActive'] ?? true,
+        paymentMethod: r['paymentMethod'] != null ? PaymentMethod.fromJson(r['paymentMethod']) : null,
+      );
+      await _recurringBoxSafe.put(rec.id, rec);
+    }
+
+    for (final raw in (data['budgets'] as List? ?? [])) {
+      final b = Map<String, dynamic>.from(raw as Map);
+      final budget = Budget(
+        id: b['id'],
+        categoryId: b['categoryId'],
+        monthlyLimit: (b['monthlyLimit'] as num).toDouble(),
+        scope: TransactionScope.fromJson(b['scope'] ?? 'personal'),
+      );
+      await _budgetsBoxSafe.put(budget.id, budget);
+    }
+
+    final settings = Map<String, dynamic>.from(data['settings'] as Map? ?? {});
+    if (settings['baseCurrency'] != null) baseCurrency = settings['baseCurrency'];
+    if (settings['tagKeywords'] is Map) {
+      await _settingsBoxSafe.put(
+        'tagKeywords',
+        Map<String, String>.from((settings['tagKeywords'] as Map).map((k, v) => MapEntry(k.toString(), v.toString()))),
+      );
+    }
   }
 }

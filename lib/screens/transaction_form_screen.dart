@@ -36,6 +36,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   bool _saving = false;
   List<String> _tags = [];
   List<String> _suggestedTags = [];
+  List<String> _matchingExistingTags = [];
   bool _isRecurring = false;
   RecurrenceFrequency _recurFrequency = RecurrenceFrequency.monthly;
 
@@ -61,6 +62,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _selectedCategory = cats.isNotEmpty ? cats.first : null;
     }
     _descriptionController.addListener(_onDescriptionChanged);
+    _tagController.addListener(_onTagInputChanged);
   }
 
   void _onDescriptionChanged() {
@@ -72,12 +74,27 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
   }
 
+  void _onTagInputChanged() {
+    final query = _tagController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      if (_matchingExistingTags.isNotEmpty) setState(() => _matchingExistingTags = []);
+      return;
+    }
+    final matches = _dataService.getAllTags()
+        .where((t) => t.toLowerCase().contains(query) && !_tags.contains(t))
+        .toList();
+    if (matches.toString() != _matchingExistingTags.toString()) {
+      setState(() => _matchingExistingTags = matches);
+    }
+  }
+
   void _addTag(String tag) {
     final trimmed = tag.trim();
     if (trimmed.isEmpty || _tags.contains(trimmed)) return;
     setState(() {
       _tags.add(trimmed);
       _suggestedTags.remove(trimmed);
+      _matchingExistingTags = [];
       _tagController.clear();
     });
   }
@@ -229,6 +246,25 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
+  Future<void> _createRecurringRule(double amount) async {
+    final recurring = await _dataService.addRecurringTransaction(
+      amount: amount,
+      currency: _currency,
+      type: _type,
+      scope: _scope,
+      categoryId: _selectedCategory!.id,
+      description: _descriptionController.text.trim(),
+      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+      frequency: _recurFrequency,
+      startDate: _date,
+    );
+    // This transaction IS the first occurrence — push the rule's next due
+    // date one cycle ahead so generateDueRecurringTransactions() doesn't
+    // immediately create a duplicate for the same date.
+    recurring.nextDueDate = recurring.computeNextDate(_date);
+    await _dataService.updateRecurringTransaction(recurring);
+  }
+
   Future<void> _save() async {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
@@ -267,6 +303,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           tags: _tags,
         );
         await _dataService.updateTransaction(updated);
+
+        if (_isRecurring) {
+          await _createRecurringRule(amount);
+        }
       } else {
         await _dataService.addTransaction(
           amount: amount,
@@ -282,22 +322,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         );
 
         if (_isRecurring) {
-          final recurring = await _dataService.addRecurringTransaction(
-            amount: amount,
-            currency: _currency,
-            type: _type,
-            scope: _scope,
-            categoryId: _selectedCategory!.id,
-            description: _descriptionController.text.trim(),
-            note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-            frequency: _recurFrequency,
-            startDate: _date,
-          );
-          // This transaction IS the first occurrence — push the rule's next
-          // due date one cycle ahead so generateDueRecurringTransactions()
-          // doesn't immediately create a duplicate for today.
-          recurring.nextDueDate = recurring.computeNextDate(_date);
-          await _dataService.updateRecurringTransaction(recurring);
+          await _createRecurringRule(amount);
         }
       }
       if (mounted) Navigator.pop(context, true);
@@ -494,54 +519,54 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      if (widget.existing == null) ...[
-                        GlassCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.repeat, color: AppTheme.accentAmber),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: Text('Make this recurring', style: AppTheme.bodyLarge)),
-                                  Switch(
-                                    value: _isRecurring,
-                                    activeColor: AppTheme.primaryCoral,
-                                    onChanged: (v) => setState(() => _isRecurring = v),
-                                  ),
-                                ],
-                              ),
-                              if (_isRecurring) ...[
-                                const SizedBox(height: 8),
-                                Text('Repeats', style: AppTheme.bodySmall),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  children: RecurrenceFrequency.values.map((f) {
-                                    final selected = f == _recurFrequency;
-                                    return ChoiceChip(
-                                      label: Text(f.label),
-                                      selected: selected,
-                                      onSelected: (_) => setState(() => _recurFrequency = f),
-                                      selectedColor: AppTheme.primaryCoral,
-                                      backgroundColor: AppTheme.glassBackground,
-                                      labelStyle: AppTheme.bodySmall.copyWith(
-                                        color: selected ? Colors.white : AppTheme.textSecondary,
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'This transaction is the first occurrence. Manage or pause it later in Settings → Recurring.',
-                                  style: AppTheme.caption,
+                      GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.repeat, color: AppTheme.accentAmber),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text('Make this recurring', style: AppTheme.bodyLarge)),
+                                Switch(
+                                  value: _isRecurring,
+                                  activeColor: AppTheme.primaryCoral,
+                                  onChanged: (v) => setState(() => _isRecurring = v),
                                 ),
                               ],
+                            ),
+                            if (_isRecurring) ...[
+                              const SizedBox(height: 8),
+                              Text('Repeats', style: AppTheme.bodySmall),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                children: RecurrenceFrequency.values.map((f) {
+                                  final selected = f == _recurFrequency;
+                                  return ChoiceChip(
+                                    label: Text(f.label),
+                                    selected: selected,
+                                    onSelected: (_) => setState(() => _recurFrequency = f),
+                                    selectedColor: AppTheme.primaryCoral,
+                                    backgroundColor: AppTheme.glassBackground,
+                                    labelStyle: AppTheme.bodySmall.copyWith(
+                                      color: selected ? Colors.white : AppTheme.textSecondary,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.existing == null
+                                    ? 'This transaction is the first occurrence. Manage or pause it later in Settings → Recurring.'
+                                    : 'Creates a new recurring rule starting from this transaction\'s date. Manage it later in Settings → Recurring.',
+                                style: AppTheme.caption,
+                              ),
                             ],
-                          ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                      ],
+                      ),
+                      const SizedBox(height: 16),
 
                       TextField(
                         controller: _descriptionController,
@@ -573,6 +598,31 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           ),
                         ),
                       ),
+                      if (_matchingExistingTags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.glassBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.glassBorder),
+                          ),
+                          constraints: const BoxConstraints(maxHeight: 160),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            itemCount: _matchingExistingTags.length,
+                            itemBuilder: (ctx, i) {
+                              final tag = _matchingExistingTags[i];
+                              return ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.sell_outlined, size: 16, color: AppTheme.textSecondary),
+                                title: Text(tag, style: AppTheme.bodyMedium),
+                                onTap: () => _addTag(tag),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                       if (_tags.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Wrap(

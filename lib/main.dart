@@ -8,6 +8,7 @@ import 'models/recurring_transaction.dart';
 import 'models/budget.dart';
 import 'services/data_service.dart';
 import 'services/security_service.dart';
+import 'services/biometric_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/lock_screen.dart';
 
@@ -77,7 +78,8 @@ class _AppLockGateState extends State<AppLockGate> {
 
   Future<void> _checkLock() async {
     final hasPin = await SecurityService().hasPin();
-    if (mounted) setState(() => _needsUnlock = hasPin);
+    final biometricEnabled = await BiometricService.isBiometricEnabled();
+    if (mounted) setState(() => _needsUnlock = hasPin || biometricEnabled);
   }
 
   @override

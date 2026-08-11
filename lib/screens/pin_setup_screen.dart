@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/security_service.dart';
-import '../services/biometric_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
-
-enum _Step { enterCurrent, enterNew, confirmNew }
 
 class PinSetupScreen extends StatefulWidget {
   const PinSetupScreen({super.key});
@@ -16,14 +13,14 @@ class PinSetupScreen extends StatefulWidget {
 
 class _PinSetupScreenState extends State<PinSetupScreen> {
   final _securityService = SecurityService();
-  final _controller = TextEditingController();
-  _Step _step = _Step.enterNew;
-  String? _pendingNewPin;
-  String? _error;
+  final _currentController = TextEditingController();
+  final _newController = TextEditingController();
+  final _confirmController = TextEditingController();
+
   bool _hasPin = false;
   bool _loading = true;
-  bool _biometricAvailable = false;
-  bool _biometricEnabled = false;
+  bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
@@ -33,80 +30,76 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
   Future<void> _load() async {
     final hasPin = await _securityService.hasPin();
-    final bioAvailable = await BiometricService.canUseBiometric();
-    final bioEnabled = await BiometricService.isBiometricEnabled();
-    setState(() {
+    if (mounted) setState(() {
       _hasPin = hasPin;
-      _step = hasPin ? _Step.enterCurrent : _Step.enterNew;
-      _biometricAvailable = bioAvailable;
-      _biometricEnabled = bioEnabled;
       _loading = false;
     });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _currentController.dispose();
+    _newController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    final input = _controller.text;
-    if (input.length < 4) {
-      setState(() => _error = 'PIN must be at least 4 digits');
+  Future<void> _save() async {
+    setState(() => _error = null);
+
+    if (_hasPin && _currentController.text.isEmpty) {
+      setState(() => _error = 'Enter your current PIN');
+      return;
+    }
+    if (_newController.text.length < 4) {
+      setState(() => _error = 'New PIN must be at least 4 digits');
+      return;
+    }
+    if (_newController.text != _confirmController.text) {
+      setState(() => _error = "New PINs don't match");
       return;
     }
 
-    if (_step == _Step.enterCurrent) {
-      final valid = await _securityService.verifyPin(input);
-      if (!valid) {
-        setState(() {
-          _error = 'Incorrect PIN';
-          _controller.clear();
-        });
-        return;
+    setState(() => _saving = true);
+    try {
+      if (_hasPin) {
+        final valid = await _securityService.verifyPin(_currentController.text);
+        if (!valid) {
+          setState(() => _error = 'Current PIN is incorrect');
+          return;
+        }
       }
-      setState(() {
-        _step = _Step.enterNew;
-        _controller.clear();
-        _error = null;
-      });
-    } else if (_step == _Step.enterNew) {
-      setState(() {
-        _pendingNewPin = input;
-        _step = _Step.confirmNew;
-        _controller.clear();
-        _error = null;
-      });
-    } else if (_step == _Step.confirmNew) {
-      if (input != _pendingNewPin) {
-        setState(() {
-          _error = "PINs don't match, try again";
-          _controller.clear();
-          _step = _Step.enterNew;
-          _pendingNewPin = null;
-        });
-        return;
-      }
-      await _securityService.setPin(input);
+      await _securityService.setPin(_newController.text);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PIN saved')));
-        setState(() {
-          _hasPin = true;
-          _controller.clear();
-        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_hasPin ? 'PIN updated' : 'PIN saved')));
         Navigator.pop(context);
       }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   Future<void> _removePin() async {
+    if (_currentController.text.isEmpty) {
+      setState(() => _error = 'Enter your current PIN to remove it');
+      return;
+    }
+    final valid = await _securityService.verifyPin(_currentController.text);
+    if (!valid) {
+      setState(() => _error = 'Current PIN is incorrect');
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.primaryCharcoal,
         title: const Text('Remove PIN lock?', style: AppTheme.headingSmall),
-        content: Text('ByeLui will open without needing a PIN or biometric.', style: AppTheme.bodyMedium),
+        content: Text(
+          'If biometric unlock is also on, it will keep working on its own. '
+          "Otherwise ByeLui will open without needing to unlock.",
+          style: AppTheme.bodyMedium,
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
@@ -117,20 +110,21 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       ),
     );
     if (confirmed != true) return;
+
     await _securityService.clearPin();
-    await BiometricService.setBiometricEnabled(false);
     if (mounted) Navigator.pop(context);
   }
 
-  String get _prompt {
-    switch (_step) {
-      case _Step.enterCurrent:
-        return 'Enter your current PIN';
-      case _Step.enterNew:
-        return _hasPin ? 'Enter a new PIN' : 'Create a PIN';
-      case _Step.confirmNew:
-        return 'Confirm your new PIN';
-    }
+  Widget _pinField(TextEditingController controller, String hint) {
+    return TextField(
+      controller: controller,
+      obscureText: true,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+      style: AppTheme.bodyLarge.copyWith(letterSpacing: 6),
+      decoration: AppTheme.glassInputDecoration(hintText: hint),
+    );
   }
 
   @override
@@ -144,92 +138,68 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       body: Container(
         decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
-          child: Column(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.textPrimary),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Text(_hasPin ? 'Manage PIN' : 'Set up PIN', style: AppTheme.headingMedium),
-                  ],
-                ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Text(_hasPin ? 'Change PIN' : 'Set up PIN', style: AppTheme.headingMedium),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    Text(_prompt, style: AppTheme.bodyLarge, textAlign: TextAlign.center),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      obscureText: true,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
-                      style: AppTheme.headingSmall.copyWith(letterSpacing: 8),
-                      decoration: AppTheme.glassInputDecoration(hintText: '••••'),
-                      onSubmitted: (_) => _submit(),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_error != null) Text(_error!, style: AppTheme.bodySmall.copyWith(color: AppTheme.errorColor)),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Container(
-                        decoration: BoxDecoration(gradient: AppTheme.buttonGradient, borderRadius: BorderRadius.circular(16)),
-                        child: ElevatedButton(
-                          style: AppTheme.primaryButtonStyle,
-                          onPressed: _submit,
-                          child: const Text('Continue'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
               if (_hasPin) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
+                Text('Current PIN', style: AppTheme.bodySmall),
+                const SizedBox(height: 6),
+                _pinField(_currentController, 'Enter current PIN'),
+                const SizedBox(height: 16),
+              ],
+
+              Text(_hasPin ? 'New PIN' : 'PIN (4–6 digits)', style: AppTheme.bodySmall),
+              const SizedBox(height: 6),
+              _pinField(_newController, '••••'),
+              const SizedBox(height: 16),
+
+              Text('Confirm PIN', style: AppTheme.bodySmall),
+              const SizedBox(height: 6),
+              _pinField(_confirmController, '••••'),
+
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: AppTheme.bodySmall.copyWith(color: AppTheme.errorColor)),
+              ],
+
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(gradient: AppTheme.buttonGradient, borderRadius: BorderRadius.circular(16)),
+                  child: ElevatedButton(
+                    style: AppTheme.primaryButtonStyle,
+                    onPressed: _saving ? null : _save,
+                    child: Text(_hasPin ? 'Update PIN' : 'Save PIN'),
+                  ),
+                ),
+              ),
+
+              if (_hasPin) ...[
+                const SizedBox(height: 20),
+                GlassCard(
+                  onTap: _removePin,
+                  child: Row(
                     children: [
-                      if (_biometricAvailable)
-                        GlassCard(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.fingerprint, color: AppTheme.accentAmber),
-                              const SizedBox(width: 10),
-                              Expanded(child: Text('Use biometrics too', style: AppTheme.bodyLarge)),
-                              Switch(
-                                value: _biometricEnabled,
-                                activeColor: AppTheme.primaryCoral,
-                                onChanged: (v) async {
-                                  await BiometricService.setBiometricEnabled(v);
-                                  setState(() => _biometricEnabled = v);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 10),
-                      GlassCard(
-                        onTap: _removePin,
-                        child: Row(
-                          children: [
-                            const Icon(Icons.lock_open, color: AppTheme.errorColor),
-                            const SizedBox(width: 10),
-                            Text('Remove PIN lock', style: AppTheme.bodyLarge.copyWith(color: AppTheme.errorColor)),
-                          ],
-                        ),
-                      ),
+                      const Icon(Icons.lock_open, color: AppTheme.errorColor),
+                      const SizedBox(width: 10),
+                      Text('Remove PIN lock', style: AppTheme.bodyLarge.copyWith(color: AppTheme.errorColor)),
                     ],
                   ),
                 ),
+                const SizedBox(height: 6),
+                Text('Uses the current PIN above to confirm removal.', style: AppTheme.caption),
               ],
             ],
           ),
