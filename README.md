@@ -5,6 +5,29 @@ design system, coral/amber accent instead of cyan.
 
 ## Getting started
 
+## Latest update — All Transactions filter redesign
+
+The filter bar had grown cluttered (search + scope toggle + category chips
++ Today chip + month pager, all stacked). Reworked into:
+
+- **Search bar** stays visible at top (spans all time when you type).
+- **One "Filters" pill** opens a bottom sheet with everything: Type
+  (All/Income/Expense), Who (All/Personal/Family), Period (Today/This
+  week/This month/This year/All time/Custom range), and Category — Apply
+  commits them all at once, Reset clears the sheet.
+- **Compact summary row** underneath instead of a wall of controls: the
+  Filters pill (highlighted when anything's active, with an X to clear),
+  the current period label (with prev/next arrows only when "This month"
+  is selected, since that's the only period where paging makes sense),
+  and the income/expense totals for whatever's currently filtered.
+- Income/Expense **type filter is new** — previously there was no way to
+  see just income or just expense in this list.
+- "This week" is Monday–Sunday of the current week.
+
+`DataService.getTransactions()` gained a `type` parameter to support the
+new Income/Expense filter.
+
+
 This scaffold was built without a Flutter SDK available, so the Hive
 adapter files (`*.g.dart`) referenced by the models are not generated yet.
 Run these steps locally:
@@ -18,7 +41,92 @@ flutter run
 This generates `category.g.dart` and `transaction.g.dart` from the
 `@HiveType`/`@HiveField` annotations in `lib/models/`.
 
-## Latest update
+## Latest update — 3 fixes
+
+- **Tag autocomplete** — typing in the tag field on Add/Edit Transaction
+  now shows a dropdown of existing tags that match what you've typed
+  (separate from the description-based smart suggestions), tap to add.
+- **Budget false-alarm bug fixed** — `budgetProgress` was comparing every
+  budget's spend using whatever scope filter the *calling screen* had
+  selected (e.g. Home's "All"), instead of that budget's own Personal/
+  Family scope. A Personal-only budget could get flagged as over limit by
+  combined Personal+Family spending. Now each budget is always evaluated
+  against spend filtered by its own scope.
+- **Biometric toggle now visible** — after creating a PIN for the first
+  time, the screen used to pop straight back to Settings, so the
+  biometric toggle (which only shows once a PIN exists) was never seen.
+  `Settings → App lock` now stays on a management view after PIN
+  creation, showing "PIN lock is on", the biometric toggle (or an
+  explanation if biometrics aren't available on the device/emulator),
+  Change PIN, and Remove PIN lock.
+
+- **PIN + biometric lock** — `Settings → App lock` to set a 4–6 digit PIN;
+  if the device supports biometrics, a toggle appears to also allow
+  fingerprint/Face ID. The app shows a lock screen at cold start whenever
+  a PIN is set (tries biometric first if enabled, falls back to PIN).
+  Ported `security_service.dart` (PIN hashing, salted SHA-256, constant-time
+  compare) and `biometric_service.dart` straight from MyLui since they're
+  app-agnostic; `lock_screen.dart` and `pin_setup_screen.dart` are new,
+  written for ByeLui's theme (MyLui's versions depend on its l10n system,
+  which ByeLui doesn't have yet — see below).
+  **Note:** currently only locks at cold start, not on app resume from
+  background — see the comment on `AppLockGate` in `main.dart` for how to
+  extend it with a `WidgetsBindingObserver` if you want lock-on-resume too.
+- **Export to CSV/PDF** — `Settings → Export transactions`. Pick Personal/
+  Family/All, a range (this month/year/all time/custom), and export —
+  opens the native share sheet (`share_plus`) so you can save to Files,
+  email it, AirDrop it, etc. CSV via the `csv` package, PDF via `pdf`
+  (title, income/expense/net summary, then a full table).
+- **Swipe gestures** on every transaction list (Home, All transactions) —
+  swipe right to edit, swipe left to delete (with confirmation). New
+  `widgets/swipeable_transaction_card.dart` wraps `TransactionCard`.
+- **Inline recurring** — the Add Transaction screen now has a "Make this
+  recurring" toggle (new transactions only) with a frequency picker right
+  there, instead of requiring a separate trip to Settings → Recurring.
+  The transaction you're saving becomes the first occurrence; the
+  recurring rule's next due date is set one cycle ahead so it won't
+  duplicate today's entry.
+- **Budget insights** — Budgets screen now has a summary header (total
+  spent vs. total budgeted this month, "On track"/"X close"/"X over"
+  pill). Home screen shows a dismissive-free alert card when any budget
+  is ≥80% or over its limit, linking straight to Budgets.
+
+## Latest update — 5 fixes/features
+
+- **PIN and biometric are now independent** (matches MyLui's actual
+  pattern) — `Settings → Security` shows a biometric toggle and a PIN
+  entry as two separate rows. Turn on biometric alone, set a PIN alone,
+  or both — no more "must create a PIN before biometric appears."
+  `PinSetupScreen` is back to a single combined form (current/new/confirm
+  fields, Remove PIN button) instead of a multi-step wizard.
+- **Backup & restore** — `Settings → Backup & restore`. Exports everything
+  (transactions, categories, recurring rules, budgets, settings) as one
+  JSON file via the share sheet; Import picks a file and replaces all
+  local data after confirmation. This is what to use when switching
+  phones. Receipt photo *files* aren't included, only the transaction
+  data — noted on-screen.
+- **Tag insights moved out of Settings** — it's still there, just
+  reachable from Analytics → Top tags → See all instead, since it's more
+  of an analysis view than a settings item.
+- **Budgets screen now sorts categories with a budget set to the top**
+  (highest % spent first), unbudgeted categories below alphabetically —
+  no more scrolling past everything without a budget to find the ones
+  that matter.
+- **Recurring can now be set when editing, not just when creating** — the
+  "Make this recurring" toggle appears on both Add and Edit. Editing an
+  existing transaction and turning it on creates a new recurring rule
+  starting from that transaction's date (there's no link back to "this
+  transaction already came from a recurring rule," so it always creates
+  a fresh one — worth knowing if you toggle it on repeatedly while
+  editing the same transaction multiple times).
+
+## Multi-language status
+
+Still not built — this needs proper Flutter l10n codegen (`flutter gen-l10n`)
+and every hardcoded string across ~15 screens pulled into `.arb` files. It's
+a distinct, sizeable pass on its own (not something to bolt on alongside
+other features without risking half-translated screens). Say the word and
+I'll do it as a dedicated pass next.
 
 - **Delete a transaction** — open it from any list, tap the trash icon in
   the top-right of the edit screen, confirm. Also deletes its attached

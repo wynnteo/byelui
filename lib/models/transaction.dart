@@ -87,6 +87,12 @@ class Transaction extends HiveObject {
   @HiveField(13, defaultValue: <String>[])
   List<String> tags;
 
+  /// Links this transaction to a named PaymentCard (e.g. "Trust Card"),
+  /// independent of the generic [paymentMethod] enum above. Nullable so
+  /// existing transactions and cash/no-card entries are unaffected.
+  @HiveField(14)
+  String? paymentCardId;
+
   Transaction({
     required this.id,
     required this.amount,
@@ -102,6 +108,7 @@ class Transaction extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
     List<String>? tags,
+    this.paymentCardId,
   }) : tags = tags ?? [];
 
   bool get isExpense => type == TransactionType.expense;
@@ -124,9 +131,12 @@ class Transaction extends HiveObject {
     String? photoPath,
     bool clearPhoto = false,
     PaymentMethod? paymentMethod,
+    bool clearPaymentMethod = false,
     DateTime? createdAt,
     DateTime? updatedAt,
     List<String>? tags,
+    String? paymentCardId,
+    bool clearPaymentCard = false,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -139,10 +149,11 @@ class Transaction extends HiveObject {
       description: description ?? this.description,
       note: note ?? this.note,
       photoPath: clearPhoto ? null : (photoPath ?? this.photoPath),
-      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentMethod: clearPaymentMethod ? null : (paymentMethod ?? this.paymentMethod),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
       tags: tags ?? this.tags,
+      paymentCardId: clearPaymentCard ? null : (paymentCardId ?? this.paymentCardId),
     );
   }
 }

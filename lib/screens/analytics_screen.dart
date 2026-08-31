@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../models/category.dart';
 import '../models/transaction.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
@@ -37,6 +38,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final breakdown = _range == _RangeView.month
         ? _dataService.categoryBreakdown(_selectedMonth.year, _selectedMonth.month, scope: _scopeFilter)
         : _dataService.yearlyCategoryBreakdown(now.year, scope: _scopeFilter);
+    final incomeBreakdown = _range == _RangeView.month
+        ? _dataService.categoryBreakdown(_selectedMonth.year, _selectedMonth.month, scope: _scopeFilter, type: TransactionType.income)
+        : _dataService.yearlyCategoryBreakdown(now.year, scope: _scopeFilter, type: TransactionType.income);
     final base = _dataService.baseCurrency;
     final comparison = _dataService.compareMonth(_selectedMonth.year, _selectedMonth.month, scope: _scopeFilter, vsLastYear: _vsLastYear);
     final isCurrentMonth = _selectedMonth.year == now.year && _selectedMonth.month == now.month;
@@ -44,6 +48,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final sortedBreakdown = breakdown.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final totalExpense = breakdown.values.fold<double>(0, (a, b) => a + b);
+    final sortedIncomeBreakdown = incomeBreakdown.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final totalIncome = incomeBreakdown.values.fold<double>(0, (a, b) => a + b);
 
     final maxY = trend
         .map((m) => [m['income'] as double, m['expense'] as double])
@@ -341,6 +348,71 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               const SizedBox(height: 24),
 
+              Text(
+                _range == _RangeView.month
+                    ? 'Income by category (${DateFormat('MMM yyyy').format(_selectedMonth)})'
+                    : 'Income by category (${now.year})',
+                style: AppTheme.headingSmall,
+              ),
+              const SizedBox(height: 12),
+              GlassCard(
+                child: sortedIncomeBreakdown.isEmpty
+                    ? Center(child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          _range == _RangeView.month ? 'No income recorded that month' : 'No income recorded this year',
+                          style: AppTheme.bodyMedium,
+                        ),
+                      ))
+                    : Column(
+                        children: [
+                          SizedBox(
+                            height: 180,
+                            child: PieChart(
+                              PieChartData(
+                                sectionsSpace: 2,
+                                centerSpaceRadius: 40,
+                                sections: sortedIncomeBreakdown.map((entry) {
+                                  final category = _dataService.getCategoryById(entry.key);
+                                  final pct = totalIncome == 0 ? 0 : (entry.value / totalIncome * 100);
+                                  return PieChartSectionData(
+                                    value: entry.value,
+                                    color: category?.color ?? AppTheme.otherColor,
+                                    title: '${pct.toStringAsFixed(0)}%',
+                                    radius: 45,
+                                    titleStyle: AppTheme.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...sortedIncomeBreakdown.map((entry) {
+                            final category = _dataService.getCategoryById(entry.key);
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: category?.color ?? AppTheme.otherColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(category?.name ?? 'Other', style: AppTheme.bodyMedium)),
+                                  Text('$base ${entry.value.toStringAsFixed(2)}', style: AppTheme.bodyMedium),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+              ),
+              const SizedBox(height: 24),
+
               Builder(builder: (context) {
                 final tagFrom = _range == _RangeView.month
                     ? DateTime(_selectedMonth.year, _selectedMonth.month, 1)
@@ -409,6 +481,64 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 );
                               }).toList(),
                             ),
+                    ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 24),
+
+              Builder(builder: (context) {
+                final srcFrom = _range == _RangeView.month
+                    ? DateTime(_selectedMonth.year, _selectedMonth.month, 1)
+                    : DateTime(now.year, 1, 1);
+                final srcTo = _range == _RangeView.month
+                    ? DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59)
+                    : DateTime(now.year, 12, 31, 23, 59, 59);
+                final sources = _dataService.paymentSourceBreakdown(from: srcFrom, to: srcTo, scope: _scopeFilter);
+                final sourceTotal = sources.fold<double>(0, (a, b) => a + (b['amount'] as double));
+
+                if (sources.isEmpty) return const SizedBox.shrink();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Spent by payment method', style: AppTheme.headingSmall),
+                    const SizedBox(height: 12),
+                    GlassCard(
+                      child: Column(
+                        children: sources.map((s) {
+                          final label = s['label'] as String;
+                          final amount = s['amount'] as double;
+                          final color = s['color'] as Color;
+                          final pct = sourceTotal == 0 ? 0.0 : amount / sourceTotal;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(label, style: AppTheme.bodyMedium)),
+                                    Text('$base ${amount.toStringAsFixed(2)}', style: AppTheme.bodyMedium),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: LinearProgressIndicator(
+                                    value: pct,
+                                    minHeight: 4,
+                                    backgroundColor: AppTheme.glassBackground,
+                                    valueColor: AlwaysStoppedAnimation(color),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ],
                 );

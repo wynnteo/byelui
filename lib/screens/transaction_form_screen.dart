@@ -4,12 +4,14 @@ import 'package:intl/intl.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import '../models/recurring_transaction.dart';
+import '../models/payment_card.dart';
 import '../services/data_service.dart';
 import '../services/photo_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
 import '../widgets/category_picker_dialog.dart';
+import 'payment_cards_screen.dart';
 
 class TransactionFormScreen extends StatefulWidget {
   final Transaction? existing;
@@ -39,6 +41,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   List<String> _matchingExistingTags = [];
   bool _isRecurring = false;
   RecurrenceFrequency _recurFrequency = RecurrenceFrequency.monthly;
+  PaymentMethod? _paymentMethod;
+  String? _paymentCardId;
 
   static const _currencies = ['SGD', 'MYR', 'USD'];
 
@@ -57,6 +61,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _photoPath = t.photoPath;
       _tags = List.from(t.tags);
       _selectedCategory = _dataService.getCategoryById(t.categoryId);
+      _paymentMethod = t.paymentMethod;
+      _paymentCardId = t.paymentCardId;
     } else {
       final cats = _dataService.getCategories(type: _type);
       _selectedCategory = cats.isNotEmpty ? cats.first : null;
@@ -194,6 +200,25 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     });
   }
 
+  void _selectCard(String cardId) {
+    setState(() {
+      _paymentCardId = cardId;
+      _paymentMethod = null;
+    });
+  }
+
+  void _selectGenericMethod(PaymentMethod method) {
+    setState(() {
+      _paymentMethod = method;
+      _paymentCardId = null;
+    });
+  }
+
+  Future<void> _managePaymentCards() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentCardsScreen()));
+    if (mounted) setState(() {}); // refresh card list on return
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -301,6 +326,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           photoPath: _photoPath,
           clearPhoto: _photoPath == null,
           tags: _tags,
+          paymentMethod: _paymentMethod,
+          clearPaymentMethod: _paymentMethod == null,
+          paymentCardId: _paymentCardId,
+          clearPaymentCard: _paymentCardId == null,
         );
         await _dataService.updateTransaction(updated);
 
@@ -319,6 +348,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           photoPath: _photoPath,
           tags: _tags,
+          paymentMethod: _paymentMethod,
+          paymentCardId: _paymentCardId,
         );
 
         if (_isRecurring) {
@@ -496,6 +527,76 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text('Long-press a category to edit or delete it', style: AppTheme.caption),
+                      const SizedBox(height: 16),
+
+                      Text('Paid with', style: AppTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ..._dataService.getPaymentCards(activeOnly: true).map((card) {
+                            final selected = card.id == _paymentCardId;
+                            return GestureDetector(
+                              onTap: () => _selectCard(card.id),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: selected ? card.color.withOpacity(0.2) : AppTheme.glassBackground,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: selected ? card.color : AppTheme.glassBorder),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(card.icon, size: 16, color: card.color),
+                                    const SizedBox(width: 6),
+                                    Text(card.name, style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                          ...[PaymentMethod.cash, PaymentMethod.eWallet, PaymentMethod.bankTransfer, PaymentMethod.other]
+                              .map((method) {
+                            final selected = method == _paymentMethod;
+                            return GestureDetector(
+                              onTap: () => _selectGenericMethod(method),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: selected ? AppTheme.accentAmber.withOpacity(0.2) : AppTheme.glassBackground,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: selected ? AppTheme.accentAmber : AppTheme.glassBorder),
+                                ),
+                                child: Text(
+                                  _dataService.paymentMethodLabel(method),
+                                  style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary),
+                                ),
+                              ),
+                            );
+                          }),
+                          GestureDetector(
+                            onTap: _managePaymentCards,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.glassBackground,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppTheme.glassBorder),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.add, size: 16, color: AppTheme.accentAmber),
+                                  const SizedBox(width: 4),
+                                  Text('New card', style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
 
                       Text('Who is this for', style: AppTheme.bodySmall),

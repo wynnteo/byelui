@@ -7,6 +7,7 @@ import '../widgets/glass_card.dart';
 import 'recurring_screen.dart';
 import 'categories_screen.dart';
 import 'budgets_screen.dart';
+import 'payment_cards_screen.dart';
 import 'pin_setup_screen.dart';
 import 'export_screen.dart';
 import 'backup_screen.dart';
@@ -238,6 +239,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Icon(Icons.category_outlined, color: AppTheme.primaryCoral),
                     const SizedBox(width: 10),
                     Expanded(child: Text('Categories', style: AppTheme.bodyLarge)),
+                    const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              GlassCard(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentCardsScreen())),
+                child: Row(
+                  children: [
+                    const Icon(Icons.credit_card_outlined, color: AppTheme.accentAmber),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('Payment cards', style: AppTheme.bodyLarge)),
                     const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),

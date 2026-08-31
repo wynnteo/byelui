@@ -1,9 +1,12 @@
 import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import '../models/recurring_transaction.dart';
 import '../models/budget.dart';
+import '../models/payment_card.dart';
+import '../theme/app_theme.dart';
 
 class DataService {
   static final DataService _instance = DataService._internal();
@@ -23,6 +26,7 @@ class DataService {
   Box<Category>? _categoriesBox;
   Box<RecurringTransaction>? _recurringBox;
   Box<Budget>? _budgetsBox;
+  Box<PaymentCard>? _paymentCardsBox;
   Box? _settingsBox;
   bool _isInitialized = false;
 
@@ -44,6 +48,10 @@ class DataService {
     _budgetsBox = Hive.isBoxOpen('budgets')
         ? Hive.box<Budget>('budgets')
         : await Hive.openBox<Budget>('budgets');
+
+    _paymentCardsBox = Hive.isBoxOpen('payment_cards')
+        ? Hive.box<PaymentCard>('payment_cards')
+        : await Hive.openBox<PaymentCard>('payment_cards');
 
     _settingsBox = Hive.isBoxOpen('settings')
         ? Hive.box('settings')
@@ -87,6 +95,13 @@ class DataService {
       throw Exception('Budgets box not initialized. Call DataService().initialize() first.');
     }
     return _budgetsBox!;
+  }
+
+  Box<PaymentCard> get _paymentCardsBoxSafe {
+    if (_paymentCardsBox == null || !_paymentCardsBox!.isOpen) {
+      throw Exception('Payment cards box not initialized. Call DataService().initialize() first.');
+    }
+    return _paymentCardsBox!;
   }
 
   bool get isInitialized => _isInitialized;
@@ -144,6 +159,7 @@ class DataService {
 
   List<Transaction> getTransactions({
     TransactionScope? scope,
+    TransactionType? type,
     DateTime? from,
     DateTime? to,
     String? categoryId,
@@ -153,6 +169,7 @@ class DataService {
   }) {
     var items = _transactionsBoxSafe.values.toList();
     if (scope != null) items = items.where((t) => t.scope == scope).toList();
+    if (type != null) items = items.where((t) => t.type == type).toList();
     if (from != null) items = items.where((t) => !t.date.isBefore(from)).toList();
     if (to != null) items = items.where((t) => !t.date.isAfter(to)).toList();
     if (categoryId != null) items = items.where((t) => t.categoryId == categoryId).toList();
@@ -188,6 +205,7 @@ class DataService {
     String? photoPath,
     PaymentMethod? paymentMethod,
     List<String>? tags,
+    String? paymentCardId,
   }) async {
     final now = DateTime.now();
     final txn = Transaction(
@@ -205,6 +223,7 @@ class DataService {
       createdAt: now,
       updatedAt: now,
       tags: tags ?? suggestTags(description),
+      paymentCardId: paymentCardId,
     );
     await _transactionsBoxSafe.put(txn.id, txn);
     return txn;
@@ -268,11 +287,11 @@ class DataService {
   }
 
   /// Expense breakdown by category for a given month, converted to base currency.
-  Map<String, double> categoryBreakdown(int year, int month, {TransactionScope? scope}) {
+  Map<String, double> categoryBreakdown(int year, int month, {TransactionScope? scope, TransactionType type = TransactionType.expense}) {
     final from = DateTime(year, month, 1);
     final to = DateTime(year, month + 1, 0, 23, 59, 59);
     final items = getTransactions(scope: scope, from: from, to: to)
-        .where((t) => t.isExpense);
+        .where((t) => t.type == type);
 
     final breakdown = <String, double>{};
     for (final t in items) {
@@ -283,10 +302,10 @@ class DataService {
   }
 
   /// Expense breakdown by category for a whole year, converted to base currency.
-  Map<String, double> yearlyCategoryBreakdown(int year, {TransactionScope? scope}) {
+  Map<String, double> yearlyCategoryBreakdown(int year, {TransactionScope? scope, TransactionType type = TransactionType.expense}) {
     final from = DateTime(year, 1, 1);
     final to = DateTime(year, 12, 31, 23, 59, 59);
-    final items = getTransactions(scope: scope, from: from, to: to).where((t) => t.isExpense);
+    final items = getTransactions(scope: scope, from: from, to: to).where((t) => t.type == type);
 
     final breakdown = <String, double>{};
     for (final t in items) {
@@ -559,6 +578,109 @@ class DataService {
     };
   }
 
+  // ---- Payment cards ----
+
+  List<PaymentCard> getPaymentCards({bool activeOnly = false}) {
+    var items = _paymentCardsBoxSafe.values.toList();
+    if (activeOnly) items = items.where((c) => c.isActive).toList();
+    items.sort((a, b) => a.name.compareTo(b.name));
+    return items;
+  }
+
+  PaymentCard? getPaymentCardById(String id) => _paymentCardsBoxSafe.get(id);
+
+  Future<PaymentCard> addPaymentCard({
+    required String name,
+    required String iconName,
+    required int colorValue,
+  }) async {
+    final card = PaymentCard(
+      id: const Uuid().v4(),
+      name: name,
+      iconName: iconName,
+      colorValue: colorValue,
+      createdAt: DateTime.now(),
+    );
+    await _paymentCardsBoxSafe.put(card.id, card);
+    return card;
+  }
+
+  Future<void> updatePaymentCard(PaymentCard card) async {
+    await _paymentCardsBoxSafe.put(card.id, card);
+  }
+
+  Future<void> deletePaymentCard(String id) async {
+    await _paymentCardsBoxSafe.delete(id);
+  }
+
+  String paymentMethodLabel(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.cash:
+        return 'Cash';
+      case PaymentMethod.card:
+        return 'Card (unspecified)';
+      case PaymentMethod.eWallet:
+        return 'E-wallet';
+      case PaymentMethod.bankTransfer:
+        return 'Bank transfer';
+      case PaymentMethod.other:
+        return 'Other';
+    }
+  }
+
+  /// Expense breakdown by "where did the money go from" — named payment
+  /// cards (Trust Card, Mari Card, ...) plus generic Cash/E-wallet/Bank
+  /// transfer/Other for transactions without a named card, for Analytics.
+  /// Transactions with neither set are grouped under 'Not set'.
+  List<Map<String, dynamic>> paymentSourceBreakdown({DateTime? from, DateTime? to, TransactionScope? scope}) {
+    final items = getTransactions(scope: scope, from: from, to: to).where((t) => t.isExpense);
+
+    final amounts = <String, double>{};
+    final meta = <String, Map<String, dynamic>>{}; // label -> {color}
+
+    for (final t in items) {
+      final converted = convertToBase(t.amount, t.currency);
+      String label;
+      Color color;
+
+      final card = t.paymentCardId != null ? getPaymentCardById(t.paymentCardId!) : null;
+      if (card != null) {
+        label = card.name;
+        color = card.color;
+      } else if (t.paymentMethod != null) {
+        label = paymentMethodLabel(t.paymentMethod!);
+        color = _paymentMethodColor(t.paymentMethod!);
+      } else {
+        label = 'Not set';
+        color = AppTheme.otherColor;
+      }
+
+      amounts[label] = (amounts[label] ?? 0) + converted;
+      meta[label] = {'color': color};
+    }
+
+    final result = amounts.entries
+        .map((e) => {'label': e.key, 'amount': e.value, 'color': meta[e.key]!['color'] as Color})
+        .toList();
+    result.sort((a, b) => (b['amount'] as double).compareTo(a['amount'] as double));
+    return result;
+  }
+
+  Color _paymentMethodColor(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.cash:
+        return AppTheme.successColor;
+      case PaymentMethod.card:
+        return AppTheme.primaryCoral;
+      case PaymentMethod.eWallet:
+        return const Color(0xFF3B82F6);
+      case PaymentMethod.bankTransfer:
+        return const Color(0xFF8B5CF6);
+      case PaymentMethod.other:
+        return AppTheme.otherColor;
+    }
+  }
+
   // ---- Month-over-month / year-over-year comparison ----
 
   /// Compares one month's totals against the previous month (or same month last year).
@@ -607,6 +729,7 @@ class DataService {
             'createdAt': t.createdAt.toIso8601String(),
             'updatedAt': t.updatedAt.toIso8601String(),
             'tags': t.tags,
+            'paymentCardId': t.paymentCardId,
           }).toList(),
       'categories': _categoriesBoxSafe.values.map((c) => {
             'id': c.id,
@@ -638,6 +761,14 @@ class DataService {
             'monthlyLimit': b.monthlyLimit,
             'scope': b.scope.toJson(),
           }).toList(),
+      'paymentCards': _paymentCardsBoxSafe.values.map((c) => {
+            'id': c.id,
+            'name': c.name,
+            'iconName': c.iconName,
+            'colorValue': c.colorValue,
+            'isActive': c.isActive,
+            'createdAt': c.createdAt.toIso8601String(),
+          }).toList(),
       'settings': {
         'baseCurrency': baseCurrency,
         'tagKeywords': _tagKeywords,
@@ -659,6 +790,7 @@ class DataService {
     await _categoriesBoxSafe.clear();
     await _recurringBoxSafe.clear();
     await _budgetsBoxSafe.clear();
+    await _paymentCardsBoxSafe.clear();
 
     for (final raw in (data['categories'] as List? ?? [])) {
       final c = Map<String, dynamic>.from(raw as Map);
@@ -690,8 +822,22 @@ class DataService {
         createdAt: DateTime.parse(t['createdAt']),
         updatedAt: DateTime.parse(t['updatedAt']),
         tags: (t['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
+        paymentCardId: t['paymentCardId'],
       );
       await _transactionsBoxSafe.put(txn.id, txn);
+    }
+
+    for (final raw in (data['paymentCards'] as List? ?? [])) {
+      final c = Map<String, dynamic>.from(raw as Map);
+      final card = PaymentCard(
+        id: c['id'],
+        name: c['name'],
+        iconName: c['iconName'],
+        colorValue: c['colorValue'],
+        isActive: c['isActive'] ?? true,
+        createdAt: DateTime.parse(c['createdAt']),
+      );
+      await _paymentCardsBoxSafe.put(card.id, card);
     }
 
     for (final raw in (data['recurringTransactions'] as List? ?? [])) {
