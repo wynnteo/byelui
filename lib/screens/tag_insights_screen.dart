@@ -149,7 +149,7 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
           child: Text(
             label,
             style: AppTheme.bodySmall.copyWith(
-              color: selected ? Colors.white : AppTheme.textSecondary,
+              color: selected ? AppTheme.ink : AppTheme.textSecondary,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),

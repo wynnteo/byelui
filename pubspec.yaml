@@ -59,6 +59,8 @@ dependencies:
   share_plus: any
   file_picker: any
 
+  excel: ^4.0.6
+
   # Localization
   flutter_localizations:
     sdk: flutter

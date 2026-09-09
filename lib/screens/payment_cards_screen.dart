@@ -40,21 +40,30 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
     );
     if (result == null) return;
 
-    if (existing != null) {
-      final updated = existing.copyWith(
-        name: result['name'],
-        iconName: result['iconName'],
-        colorValue: result['colorValue'],
-      );
-      await _dataService.updatePaymentCard(updated);
-    } else {
-      await _dataService.addPaymentCard(
-        name: result['name'],
-        iconName: result['iconName'],
-        colorValue: result['colorValue'],
-      );
+    try {
+      if (existing != null) {
+        final updated = existing.copyWith(
+          name: result['name'],
+          iconName: result['iconName'],
+          colorValue: result['colorValue'],
+        );
+        await _dataService.updatePaymentCard(updated);
+      } else {
+        await _dataService.addPaymentCard(
+          name: result['name'],
+          iconName: result['iconName'],
+          colorValue: result['colorValue'],
+        );
+      }
+      if (mounted) setState(() {});
+    } catch (e, st) {
+      debugPrint('Failed to save payment card: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save card: $e')),
+        );
+      }
     }
-    if (mounted) setState(() {});
   }
 
   Future<void> _manageCard(PaymentCard card) async {
@@ -113,7 +122,14 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cards = _dataService.getPaymentCards();
+    List<PaymentCard> cards = [];
+    Object? loadError;
+    try {
+      cards = _dataService.getPaymentCards();
+    } catch (e, st) {
+      debugPrint('getPaymentCards failed: $e\n$st');
+      loadError = e;
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
@@ -148,7 +164,18 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: cards.isEmpty
+                child: loadError != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: SelectableText(
+                            'Could not load payment cards:\n$loadError',
+                            textAlign: TextAlign.center,
+                            style: AppTheme.bodySmall,
+                          ),
+                        ),
+                      )
+                    : cards.isEmpty
                     ? Center(
                         child: Padding(
                           padding: const EdgeInsets.all(24),

@@ -524,19 +524,20 @@ class DataService {
     await _budgetsBoxSafe.delete(id);
   }
 
-  /// Spent-vs-limit for every budget in the current month, converted to base currency.
-  /// Each budget is compared against spend filtered by *that budget's own*
-  /// scope (not the outer scope filter) — otherwise a Personal-only budget
-  /// could be flagged as over limit by combined Personal+Family spending.
-  List<Map<String, dynamic>> budgetProgress({TransactionScope? scope}) {
-    final now = DateTime.now();
+  /// Spent-vs-limit for every budget in [month] (defaults to the current
+  /// month), converted to base currency. Each budget is compared against
+  /// spend filtered by *that budget's own* scope (not the outer scope
+  /// filter) — otherwise a Personal-only budget could be flagged as over
+  /// limit by combined Personal+Family spending.
+  List<Map<String, dynamic>> budgetProgress({TransactionScope? scope, DateTime? month}) {
+    final target = month ?? DateTime.now();
     final budgets = getBudgets(scope: scope);
     final spendCache = <TransactionScope, Map<String, double>>{};
 
     return budgets.map((b) {
       final spendByCategory = spendCache.putIfAbsent(
         b.scope,
-        () => categoryBreakdown(now.year, now.month, scope: b.scope),
+        () => categoryBreakdown(target.year, target.month, scope: b.scope),
       );
       final spent = spendByCategory[b.categoryId] ?? 0;
       return {
@@ -548,10 +549,12 @@ class DataService {
     }).toList();
   }
 
-  /// Aggregate across all budgets for the current month: total budgeted,
-  /// total spent against budgeted categories, and how many are over/near limit.
-  Map<String, dynamic> budgetSummary({TransactionScope? scope, double nearThreshold = 0.8}) {
-    final progress = budgetProgress(scope: scope);
+  /// Aggregate across all budgets for [month] (defaults to current month):
+  /// total budgeted, total spent against budgeted categories, spend outside
+  /// any budgeted category, and how many are over/near limit.
+  Map<String, dynamic> budgetSummary({TransactionScope? scope, double nearThreshold = 0.8, DateTime? month}) {
+    final target = month ?? DateTime.now();
+    final progress = budgetProgress(scope: scope, month: target);
     double totalBudget = 0;
     double totalSpent = 0;
     int overCount = 0;
@@ -568,14 +571,123 @@ class DataService {
         nearCount++;
       }
     }
+
+    final allCategorySpend = categoryBreakdown(target.year, target.month, scope: scope);
+    final totalSpentAll = allCategorySpend.values.fold<double>(0, (a, b) => a + b);
+    final unbudgetedSpend = (totalSpentAll - totalSpent).clamp(0, double.infinity);
+
     return {
       'totalBudget': totalBudget,
       'totalSpent': totalSpent,
-      'remaining': totalBudget - totalSpent,
+      'totalSpentAll': totalSpentAll,
+      'unbudgetedSpend': unbudgetedSpend,
+      'remaining': totalBudget - totalSpentAll,
+      'percentAll': totalBudget <= 0 ? 0.0 : (totalSpentAll / totalBudget),
       'overCount': overCount,
       'nearCount': nearCount,
       'budgetCount': progress.length,
     };
+  }
+
+  /// Biggest expense category and the single highest-spending month for a
+  /// given year — used for the Analytics "highlights" cards.
+  Map<String, dynamic> yearHighlights(int year, {TransactionScope? scope}) {
+    final catBreakdown = yearlyCategoryBreakdown(year, scope: scope);
+    String? topCategoryId;
+    double topCategoryAmount = 0;
+    catBreakdown.forEach((catId, amount) {
+      if (amount > topCategoryAmount) {
+        topCategoryAmount = amount;
+        topCategoryId = catId;
+      }
+    });
+
+    int? topMonth;
+    double topMonthAmount = 0;
+    for (var m = 1; m <= 12; m++) {
+      final totals = monthlyTotals(year, m, scope: scope);
+      final expense = totals['expense'] ?? 0;
+      if (expense > topMonthAmount) {
+        topMonthAmount = expense;
+        topMonth = m;
+      }
+    }
+
+    return {
+      'topCategoryId': topCategoryId,
+      'topCategoryAmount': topCategoryAmount,
+      'topMonth': topMonth,
+      'topMonthAmount': topMonthAmount,
+    };
+  }
+
+  /// Short, on-device "insights" comparing the given month against the
+  /// previous one and calling out the single biggest expense — all rule
+  /// based, no network calls. Returns up to 3 short sentences.
+  List<String> monthlyInsights({DateTime? month, TransactionScope? scope}) {
+    final target = month ?? DateTime.now();
+    final prevMonth = DateTime(target.year, target.month - 1, 1);
+    final base = baseCurrency;
+    final insights = <String>[];
+
+    final thisBreakdown = categoryBreakdown(target.year, target.month, scope: scope);
+    final lastBreakdown = categoryBreakdown(prevMonth.year, prevMonth.month, scope: scope);
+
+    // 1. Category with the biggest % jump vs last month (ignore tiny/no-baseline amounts).
+    String? risingCategoryId;
+    double risingPct = 0;
+    double risingThisAmount = 0;
+    double risingLastAmount = 0;
+    thisBreakdown.forEach((catId, amount) {
+      final last = lastBreakdown[catId] ?? 0;
+      if (amount < 20 || last <= 0) return;
+      final pct = (amount - last) / last;
+      if (pct > risingPct) {
+        risingPct = pct;
+        risingCategoryId = catId;
+        risingThisAmount = amount;
+        risingLastAmount = last;
+      }
+    });
+    if (risingCategoryId != null && risingPct >= 0.2) {
+      final cat = getCategoryById(risingCategoryId!);
+      insights.add(
+        '${cat?.name ?? 'This category'} is up ${(risingPct * 100).toStringAsFixed(0)}% vs last month '
+        '($base ${risingLastAmount.toStringAsFixed(0)} → $base ${risingThisAmount.toStringAsFixed(0)}).',
+      );
+    }
+
+    // 2. Overall spend vs last month.
+    final thisTotal = thisBreakdown.values.fold<double>(0, (a, b) => a + b);
+    final lastTotal = lastBreakdown.values.fold<double>(0, (a, b) => a + b);
+    if (lastTotal > 0) {
+      final pct = (thisTotal - lastTotal) / lastTotal;
+      if (pct.abs() >= 0.1) {
+        insights.add(
+          'You\'ve spent ${(pct.abs() * 100).toStringAsFixed(0)}% ${pct >= 0 ? 'more' : 'less'} '
+          'overall this month than last month.',
+        );
+      }
+    }
+
+    // 3. Biggest single expense this month.
+    final from = DateTime(target.year, target.month, 1);
+    final to = DateTime(target.year, target.month + 1, 0, 23, 59, 59);
+    final items = getTransactions(scope: scope, from: from, to: to, type: TransactionType.expense).toList()
+      ..sort((a, b) => convertToBase(b.amount, b.currency).compareTo(convertToBase(a.amount, a.currency)));
+    if (items.isNotEmpty) {
+      final biggest = items.first;
+      final amount = convertToBase(biggest.amount, biggest.currency);
+      if (amount >= 50) {
+        final cat = getCategoryById(biggest.categoryId);
+        insights.add(
+          'Your biggest expense this month was $base ${amount.toStringAsFixed(0)} on '
+          '"${biggest.description}"${cat != null ? ' (${cat.name})' : ''}.',
+        );
+      }
+    }
+
+    return insights;
   }
 
   // ---- Payment cards ----

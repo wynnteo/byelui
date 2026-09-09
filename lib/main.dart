@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'theme/app_theme.dart';
@@ -6,6 +8,7 @@ import 'models/category.dart';
 import 'models/transaction.dart';
 import 'models/recurring_transaction.dart';
 import 'models/budget.dart';
+import 'models/payment_card.dart';
 import 'services/data_service.dart';
 import 'services/security_service.dart';
 import 'services/biometric_service.dart';
@@ -23,6 +26,8 @@ void main() async {
 
   await Hive.initFlutter();
 
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+
   Hive.registerAdapter(TransactionTypeAdapter());
   Hive.registerAdapter(CategoryAdapter());
   Hive.registerAdapter(TransactionScopeAdapter());
@@ -31,6 +36,7 @@ void main() async {
   Hive.registerAdapter(RecurrenceFrequencyAdapter());
   Hive.registerAdapter(RecurringTransactionAdapter());
   Hive.registerAdapter(BudgetAdapter());
+  Hive.registerAdapter(PaymentCardAdapter());
 
   await DataService().initialize();
 
@@ -46,9 +52,12 @@ class ByeLuiApp extends StatelessWidget {
       title: 'ByeLui',
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: GoogleFonts.workSans().fontFamily,
+        scaffoldBackgroundColor: AppTheme.paper,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppTheme.primaryCoral,
-          brightness: Brightness.dark,
+          seedColor: AppTheme.stamp,
+          brightness: Brightness.light,
+          surface: AppTheme.paper,
         ),
       ),
       debugShowCheckedModeBanner: false,
@@ -85,7 +94,7 @@ class _AppLockGateState extends State<AppLockGate> {
   @override
   Widget build(BuildContext context) {
     if (_needsUnlock == null) {
-      return const Scaffold(backgroundColor: AppTheme.primaryCharcoal, body: SizedBox());
+      return const Scaffold(backgroundColor: AppTheme.paper, body: SizedBox());
     }
     if (_needsUnlock == true) {
       return LockScreen(onUnlocked: () => setState(() => _needsUnlock = false));

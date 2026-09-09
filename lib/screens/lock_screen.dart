@@ -116,13 +116,13 @@ class _LockScreenState extends State<LockScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(_hasPin ? Icons.lock_outline : Icons.fingerprint, size: 64, color: Colors.white),
+                    Icon(_hasPin ? Icons.lock_outline : Icons.fingerprint, size: 56, color: AppTheme.stamp),
                     const SizedBox(height: 24),
-                    Text('ByeLui is locked', style: AppTheme.headingSmall.copyWith(color: Colors.white), textAlign: TextAlign.center),
+                    Text('ByeLui is locked', style: AppTheme.headingSmall, textAlign: TextAlign.center),
                     const SizedBox(height: 8),
                     Text(
                       _hasPin ? 'Enter your PIN to continue' : 'Unlock with biometrics to continue',
-                      style: AppTheme.bodyMedium.copyWith(color: Colors.white70),
+                      style: AppTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
@@ -135,20 +135,8 @@ class _LockScreenState extends State<LockScreen> {
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
-                        style: AppTheme.headingSmall.copyWith(color: Colors.white, letterSpacing: 8),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.1),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: Colors.white),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        ),
+                        style: AppTheme.numeral(size: 20).copyWith(letterSpacing: 8),
+                        decoration: AppTheme.glassInputDecoration(),
                         onSubmitted: (_) => _verifyPin(),
                       ),
                       const SizedBox(height: 16),
@@ -159,14 +147,13 @@ class _LockScreenState extends State<LockScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _isVerifying ? null : _verifyPin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppTheme.primaryCoral,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
+                          style: AppTheme.primaryButtonStyle,
                           child: _isVerifying
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.ink),
+                                )
                               : const Text('Unlock'),
                         ),
                       ),
@@ -184,12 +171,7 @@ class _LockScreenState extends State<LockScreen> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: _tryBiometric,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppTheme.primaryCoral,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
+                            style: AppTheme.primaryButtonStyle,
                             icon: const Icon(Icons.fingerprint),
                             label: const Text('Unlock with biometrics'),
                           ),
@@ -197,8 +179,8 @@ class _LockScreenState extends State<LockScreen> {
                       ] else
                         TextButton.icon(
                           onPressed: _tryBiometric,
-                          icon: const Icon(Icons.fingerprint, color: Colors.white70),
-                          label: const Text('Use biometrics instead', style: TextStyle(color: Colors.white70)),
+                          icon: const Icon(Icons.fingerprint, color: AppTheme.inkFaded),
+                          label: Text('Use biometrics instead', style: AppTheme.bodyMedium),
                         ),
                     ],
                   ],

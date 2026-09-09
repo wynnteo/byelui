@@ -31,6 +31,49 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    try {
+      return _buildContent(context);
+    } catch (e, st) {
+      debugPrint('AnalyticsScreen failed to build: $e\n$st');
+      return Scaffold(
+        backgroundColor: AppTheme.primaryCharcoal,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Text('Analytics', style: AppTheme.headingMedium),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text('Analytics couldn\'t load. Please screenshot this and send it back:', style: AppTheme.bodyLarge),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.glassBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.glassBorder),
+                  ),
+                  child: SelectableText('$e', style: AppTheme.bodySmall),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildContent(BuildContext context) {
     final now = DateTime.now();
     final trend = _range == _RangeView.month
         ? _dataService.monthlyTrend(6, scope: _scopeFilter)
@@ -51,6 +94,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final sortedIncomeBreakdown = incomeBreakdown.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final totalIncome = incomeBreakdown.values.fold<double>(0, (a, b) => a + b);
+    List<String> insights = [];
+    try {
+      insights = _dataService.monthlyInsights(month: _selectedMonth, scope: _scopeFilter);
+    } catch (e, st) {
+      debugPrint('monthlyInsights failed: $e\n$st');
+    }
+
+    final highlightYear = _range == _RangeView.month ? _selectedMonth.year : now.year;
+    Map<String, dynamic> highlights = {
+      'topCategoryId': null,
+      'topCategoryAmount': 0.0,
+      'topMonth': null,
+      'topMonthAmount': 0.0,
+    };
+    try {
+      highlights = _dataService.yearHighlights(highlightYear, scope: _scopeFilter);
+    } catch (e, st) {
+      debugPrint('yearHighlights failed: $e\n$st');
+    }
 
     final maxY = trend
         .map((m) => [m['income'] as double, m['expense'] as double])
@@ -212,6 +274,96 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 const SizedBox(height: 20),
               ],
 
+              if (insights.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, size: 18, color: AppTheme.accentAmber),
+                    const SizedBox(width: 8),
+                    Text('Insights', style: AppTheme.headingSmall),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: insights
+                        .map((text) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('💡 '),
+                                  Expanded(child: Text(text, style: AppTheme.bodyMedium)),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              if (highlights['topCategoryId'] != null || highlights['topMonth'] != null) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.emoji_events_outlined, size: 18, color: AppTheme.primaryCoral),
+                    const SizedBox(width: 8),
+                    Text('$highlightYear highlights', style: AppTheme.headingSmall),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                    if (highlights['topCategoryId'] != null)
+                      Expanded(
+                        child: GlassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Biggest category', style: AppTheme.caption),
+                              const SizedBox(height: 4),
+                              Text(
+                                _dataService.getCategoryById(highlights['topCategoryId'])?.name ?? 'Other',
+                                style: AppTheme.bodyLarge,
+                              ),
+                              Text(
+                                '$base ${(highlights['topCategoryAmount'] as double).toStringAsFixed(0)}',
+                                style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryCoral),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (highlights['topCategoryId'] != null && highlights['topMonth'] != null)
+                      const SizedBox(width: 12),
+                    if (highlights['topMonth'] != null)
+                      Expanded(
+                        child: GlassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Highest spending month', style: AppTheme.caption),
+                              const SizedBox(height: 4),
+                              Text(
+                                DateFormat('MMMM').format(DateTime(highlightYear, highlights['topMonth'] as int)),
+                                style: AppTheme.bodyLarge,
+                              ),
+                              Text(
+                                '$base ${(highlights['topMonthAmount'] as double).toStringAsFixed(0)}',
+                                style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryCoral),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
               Text(
                 _range == _RangeView.month ? 'Income vs expense (6 months)' : 'Income vs expense (${now.year})',
                 style: AppTheme.headingSmall,
@@ -283,11 +435,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               const SizedBox(height: 24),
 
-              Text(
-                _range == _RangeView.month
-                    ? 'Spending by category (${DateFormat('MMM yyyy').format(_selectedMonth)})'
-                    : 'Spending by category (${now.year})',
-                style: AppTheme.headingSmall,
+              Row(
+                children: [
+                  const Icon(Icons.pie_chart_outline_rounded, size: 18, color: AppTheme.primaryCoral),
+                  const SizedBox(width: 8),
+                  Text('Spending by category', style: AppTheme.headingSmall),
+                ],
               ),
               const SizedBox(height: 12),
               GlassCard(
@@ -303,22 +456,37 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         children: [
                           SizedBox(
                             height: 180,
-                            child: PieChart(
-                              PieChartData(
-                                sectionsSpace: 2,
-                                centerSpaceRadius: 40,
-                                sections: sortedBreakdown.map((entry) {
-                                  final category = _dataService.getCategoryById(entry.key);
-                                  final pct = totalExpense == 0 ? 0 : (entry.value / totalExpense * 100);
-                                  return PieChartSectionData(
-                                    value: entry.value,
-                                    color: category?.color ?? AppTheme.otherColor,
-                                    title: '${pct.toStringAsFixed(0)}%',
-                                    radius: 45,
-                                    titleStyle: AppTheme.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-                                  );
-                                }).toList(),
-                              ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                PieChart(
+                                  PieChartData(
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: 45,
+                                    sections: sortedBreakdown.map((entry) {
+                                      final category = _dataService.getCategoryById(entry.key);
+                                      final pct = totalExpense == 0 ? 0 : (entry.value / totalExpense * 100);
+                                      return PieChartSectionData(
+                                        value: entry.value,
+                                        color: category?.color ?? AppTheme.otherColor,
+                                        title: '${pct.toStringAsFixed(0)}%',
+                                        radius: 40,
+                                        titleStyle: AppTheme.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Total', style: AppTheme.caption),
+                                    Text(
+                                      '$base ${totalExpense.toStringAsFixed(0)}',
+                                      style: AppTheme.headingSmall.copyWith(color: AppTheme.primaryCoral),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -348,11 +516,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               const SizedBox(height: 24),
 
-              Text(
-                _range == _RangeView.month
-                    ? 'Income by category (${DateFormat('MMM yyyy').format(_selectedMonth)})'
-                    : 'Income by category (${now.year})',
-                style: AppTheme.headingSmall,
+              Row(
+                children: [
+                  const Icon(Icons.savings_outlined, size: 18, color: AppTheme.successColor),
+                  const SizedBox(width: 8),
+                  Text('Income by category', style: AppTheme.headingSmall),
+                ],
               ),
               const SizedBox(height: 12),
               GlassCard(
@@ -368,22 +537,37 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         children: [
                           SizedBox(
                             height: 180,
-                            child: PieChart(
-                              PieChartData(
-                                sectionsSpace: 2,
-                                centerSpaceRadius: 40,
-                                sections: sortedIncomeBreakdown.map((entry) {
-                                  final category = _dataService.getCategoryById(entry.key);
-                                  final pct = totalIncome == 0 ? 0 : (entry.value / totalIncome * 100);
-                                  return PieChartSectionData(
-                                    value: entry.value,
-                                    color: category?.color ?? AppTheme.otherColor,
-                                    title: '${pct.toStringAsFixed(0)}%',
-                                    radius: 45,
-                                    titleStyle: AppTheme.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-                                  );
-                                }).toList(),
-                              ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                PieChart(
+                                  PieChartData(
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: 45,
+                                    sections: sortedIncomeBreakdown.map((entry) {
+                                      final category = _dataService.getCategoryById(entry.key);
+                                      final pct = totalIncome == 0 ? 0 : (entry.value / totalIncome * 100);
+                                      return PieChartSectionData(
+                                        value: entry.value,
+                                        color: category?.color ?? AppTheme.otherColor,
+                                        title: '${pct.toStringAsFixed(0)}%',
+                                        radius: 40,
+                                        titleStyle: AppTheme.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Total', style: AppTheme.caption),
+                                    Text(
+                                      '$base ${totalIncome.toStringAsFixed(0)}',
+                                      style: AppTheme.headingSmall.copyWith(color: AppTheme.successColor),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -567,7 +751,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           child: Text(
             label,
             style: AppTheme.bodyMedium.copyWith(
-              color: selected ? Colors.white : AppTheme.textSecondary,
+              color: selected ? AppTheme.ink : AppTheme.textSecondary,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),

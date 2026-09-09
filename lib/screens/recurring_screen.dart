@@ -320,7 +320,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                             selectedColor: AppTheme.primaryCoral,
                             backgroundColor: AppTheme.glassBackground,
                             labelStyle: AppTheme.bodySmall.copyWith(
-                              color: selected ? Colors.white : AppTheme.textSecondary,
+                              color: selected ? AppTheme.ink : AppTheme.textSecondary,
                             ),
                           );
                         }).toList(),

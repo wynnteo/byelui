@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Text('Income', style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${income.toStringAsFixed(2)}',
-                                  style: AppTheme.headingSmall.copyWith(color: AppTheme.successColor),
+                                  style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.successColor),
                                 ),
                               ],
                             ),
@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Text('Expense', style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${expense.toStringAsFixed(2)}',
-                                  style: AppTheme.headingSmall.copyWith(color: AppTheme.primaryCoral),
+                                  style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.stamp),
                                 ),
                               ],
                             ),
@@ -126,6 +126,111 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+
+                Builder(builder: (context) {
+                  final summary = _dataService.budgetSummary(scope: _scopeFilter);
+                  final budgetCount = summary['budgetCount'] as int;
+                  final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+                  final daysLeft = daysInMonth - now.day + 1;
+
+                  if (budgetCount == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GlassCard(
+                        onTap: () async {
+                          await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen()));
+                          _refresh();
+                        },
+                        child: Row(
+                          children: [
+                            const Icon(Icons.add_chart_outlined, color: AppTheme.accentAmber),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text('Set a monthly budget to see how much you can still spend', style: AppTheme.bodyMedium),
+                            ),
+                            const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final totalBudget = summary['totalBudget'] as double;
+                  final remaining = summary['remaining'] as double;
+                  final isOverBudget = remaining < 0;
+                  final pct = totalBudget <= 0 ? 0.0 : ((summary['totalSpent'] as double) / totalBudget).clamp(0, 1).toDouble();
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassCard(
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen()));
+                        _refresh();
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isOverBudget ? 'Over budget this month' : 'Left to spend this month',
+                            style: AppTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$base ${remaining.abs().toStringAsFixed(2)}',
+                            style: AppTheme.numeral(size: 30, weight: FontWeight.w700).copyWith(
+                              color: isOverBudget ? AppTheme.errorColor : AppTheme.successColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: LinearProgressIndicator(
+                              value: pct,
+                              minHeight: 6,
+                              backgroundColor: AppTheme.glassBackground,
+                              valueColor: AlwaysStoppedAnimation(isOverBudget ? AppTheme.errorColor : AppTheme.accentAmber),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text('$daysLeft day${daysLeft == 1 ? '' : 's'} left this month', style: AppTheme.caption),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+
+                Builder(builder: (context) {
+                  final insights = _dataService.monthlyInsights(scope: _scopeFilter).take(2).toList();
+                  if (insights.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.auto_awesome, size: 16, color: AppTheme.accentAmber),
+                              const SizedBox(width: 6),
+                              Text('Insights', style: AppTheme.bodySmall),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ...insights.map((text) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('💡 '),
+                                    Expanded(child: Text(text, style: AppTheme.bodyMedium)),
+                                  ],
+                                ),
+                              )),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
 
                 GlassCard(
                   onTap: () async {
@@ -241,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
             _refresh();
           },
-          child: const Icon(Icons.add, color: Colors.white),
+          child: const Icon(Icons.add, color: AppTheme.ink),
         ),
       ),
       bottomNavigationBar: SafeArea(

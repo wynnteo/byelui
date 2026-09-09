@@ -46,7 +46,7 @@ class ScopeToggle extends StatelessWidget {
                 child: Text(
                   option.label,
                   style: AppTheme.bodyMedium.copyWith(
-                    color: selected ? Colors.white : AppTheme.textSecondary,
+                    color: selected ? AppTheme.ink : AppTheme.textSecondary,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),

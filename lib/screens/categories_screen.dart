@@ -124,7 +124,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                             child: Text(
                               t == TransactionType.expense ? 'Expense' : 'Income',
                               style: AppTheme.bodyMedium.copyWith(
-                                color: selected ? Colors.white : AppTheme.textSecondary,
+                                color: selected ? AppTheme.ink : AppTheme.textSecondary,
                               ),
                             ),
                           ),

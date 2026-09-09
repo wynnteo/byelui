@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
-import '../models/budget.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
@@ -16,11 +16,16 @@ class BudgetsScreen extends StatefulWidget {
 class _BudgetsScreenState extends State<BudgetsScreen> {
   final _dataService = DataService();
   TransactionScope _scope = TransactionScope.personal;
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+
+  void _shiftMonth(int delta) {
+    setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + delta));
+  }
 
   Widget _statusPill(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
       child: Text(label, style: AppTheme.bodySmall.copyWith(color: color, fontWeight: FontWeight.w600)),
     );
   }
@@ -67,7 +72,9 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = _dataService.budgetProgress(scope: _scope);
+    final now = DateTime.now();
+    final isCurrentMonth = _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+    final progress = _dataService.budgetProgress(scope: _scope, month: _selectedMonth);
     final base = _dataService.baseCurrency;
 
     Map<String, dynamic>? progressFor(String categoryId) {
@@ -96,7 +103,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Row(
                   children: [
                     IconButton(
@@ -132,7 +139,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             child: Text(
                               s == TransactionScope.personal ? 'Personal' : 'Family',
                               style: AppTheme.bodyMedium.copyWith(
-                                color: selected ? Colors.white : AppTheme.textSecondary,
+                                color: selected ? AppTheme.ink : AppTheme.textSecondary,
                               ),
                             ),
                           ),
@@ -142,17 +149,58 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Builder(builder: (context) {
-                final summary = _dataService.budgetSummary(scope: _scope);
-                final base = _dataService.baseCurrency;
-                final totalBudget = summary['totalBudget'] as double;
-                final totalSpent = summary['totalSpent'] as double;
-                final overCount = summary['overCount'] as int;
-                final nearCount = summary['nearCount'] as int;
-                final budgetCount = summary['budgetCount'] as int;
+              const SizedBox(height: 12),
 
-                if (budgetCount == 0) return const SizedBox.shrink();
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left, color: AppTheme.textSecondary),
+                      onPressed: () => _shiftMonth(-1),
+                    ),
+                    Text(
+                      isCurrentMonth ? 'This month · ${DateFormat('MMM yyyy').format(_selectedMonth)}' : DateFormat('MMMM yyyy').format(_selectedMonth),
+                      style: AppTheme.headingSmall,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                      onPressed: isCurrentMonth ? null : () => _shiftMonth(1),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              Builder(builder: (context) {
+                final summary = _dataService.budgetSummary(scope: _scope, month: _selectedMonth);
+                final totalBudget = summary['totalBudget'] as double;
+                final totalSpentAll = summary['totalSpentAll'] as double;
+                final budgetedSpend = summary['totalSpent'] as double;
+                final unbudgetedSpend = summary['unbudgetedSpend'] as double;
+                final budgetCount = summary['budgetCount'] as int;
+                final percentAll = summary['percentAll'] as double;
+                final over = totalBudget > 0 && totalSpentAll > totalBudget;
+
+                if (budgetCount == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: GlassCard(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.add_chart_outlined, color: AppTheme.accentAmber),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text('Set a monthly budget on a category below to see your totals here', style: AppTheme.bodyMedium),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                final ringColor = over ? AppTheme.errorColor : AppTheme.stamp;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -161,38 +209,85 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 84,
+                              height: 84,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 84,
+                                    height: 84,
+                                    child: CircularProgressIndicator(
+                                      value: 1,
+                                      strokeWidth: 8,
+                                      color: AppTheme.paperLine,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 84,
+                                    height: 84,
+                                    child: CircularProgressIndicator(
+                                      value: percentAll.clamp(0, 1),
+                                      strokeWidth: 8,
+                                      backgroundColor: Colors.transparent,
+                                      valueColor: AlwaysStoppedAnimation(ringColor),
+                                    ),
+                                  ),
+                                  Text('${(percentAll * 100).toStringAsFixed(0)}%', style: AppTheme.numeral(size: 15, color: ringColor)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$base ${totalSpentAll.toStringAsFixed(2)}',
+                                    style: AppTheme.numeral(size: 22, weight: FontWeight.w700),
+                                  ),
+                                  Text('/ $base ${totalBudget.toStringAsFixed(2)}', style: AppTheme.bodyMedium),
+                                  const SizedBox(height: 8),
+                                  _statusPill(
+                                    over
+                                        ? 'Over budget by $base ${(totalSpentAll - totalBudget).toStringAsFixed(2)}'
+                                        : '$base ${(totalBudget - totalSpentAll).toStringAsFixed(2)} left',
+                                    over ? AppTheme.errorColor : AppTheme.income,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, color: AppTheme.paperLine),
+                        const SizedBox(height: 12),
+                        Row(
                           children: [
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Spent this month', style: AppTheme.bodySmall),
-                                  Text(
-                                    '$base ${totalSpent.toStringAsFixed(0)} / ${totalBudget.toStringAsFixed(0)}',
-                                    style: AppTheme.headingSmall.copyWith(
-                                      color: totalSpent > totalBudget ? AppTheme.errorColor : AppTheme.textPrimary,
-                                    ),
-                                  ),
+                                  Text('BUDGETED SPEND', style: AppTheme.caption.copyWith(letterSpacing: 0.5)),
+                                  const SizedBox(height: 4),
+                                  Text('$base ${budgetedSpend.toStringAsFixed(2)}', style: AppTheme.numeral(size: 16)),
                                 ],
                               ),
                             ),
-                            if (overCount > 0)
-                              _statusPill('$overCount over', AppTheme.errorColor)
-                            else if (nearCount > 0)
-                              _statusPill('$nearCount close', AppTheme.accentAmber)
-                            else
-                              _statusPill('On track', AppTheme.successColor),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('UNBUDGETED SPEND', style: AppTheme.caption.copyWith(letterSpacing: 0.5)),
+                                  const SizedBox(height: 4),
+                                  Text('$base ${unbudgetedSpend.toStringAsFixed(2)}', style: AppTheme.numeral(size: 16)),
+                                ],
+                              ),
+                            ),
                           ],
-                        ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
-                          child: LinearProgressIndicator(
-                            value: totalBudget <= 0 ? 0 : (totalSpent / totalBudget).clamp(0, 1),
-                            minHeight: 6,
-                            backgroundColor: AppTheme.glassBackground,
-                            valueColor: AlwaysStoppedAnimation(totalSpent > totalBudget ? AppTheme.errorColor : AppTheme.successColor),
-                          ),
                         ),
                       ],
                     ),
@@ -200,9 +295,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                 );
               }),
               const SizedBox(height: 16),
+
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   itemCount: categories.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (ctx, i) {
@@ -220,26 +316,15 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: c.color.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                alignment: Alignment.center,
-                                child: Icon(c.icon, color: c.color, size: 16),
-                              ),
+                              Container(width: 8, height: 8, decoration: BoxDecoration(color: c.color, shape: BoxShape.circle)),
                               const SizedBox(width: 10),
                               Expanded(child: Text(c.name, style: AppTheme.bodyLarge)),
-                              if (limit > 0)
+                              if (limit > 0 && over)
                                 Text(
-                                  '$base ${spent.toStringAsFixed(0)} / ${limit.toStringAsFixed(0)}',
-                                  style: AppTheme.bodyMedium.copyWith(
-                                    color: over ? AppTheme.errorColor : AppTheme.textSecondary,
-                                  ),
+                                  '$base ${(spent - limit).toStringAsFixed(2)} over',
+                                  style: AppTheme.bodyMedium.copyWith(color: AppTheme.errorColor, fontWeight: FontWeight.w600),
                                 )
-                              else
+                              else if (limit == 0)
                                 Text('Set budget', style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
                             ],
                           ),
@@ -250,9 +335,20 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               child: LinearProgressIndicator(
                                 value: pct.clamp(0, 1),
                                 minHeight: 6,
-                                backgroundColor: AppTheme.glassBackground,
+                                backgroundColor: AppTheme.paperLine,
                                 valueColor: AlwaysStoppedAnimation(over ? AppTheme.errorColor : c.color),
                               ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '$base ${spent.toStringAsFixed(2)} / ${limit.toStringAsFixed(2)}',
+                                  style: AppTheme.numeral(size: 12, color: AppTheme.inkFaded),
+                                ),
+                                _statusPill('${(pct * 100).toStringAsFixed(0)}%', over ? AppTheme.errorColor : c.color),
+                              ],
                             ),
                           ],
                         ],

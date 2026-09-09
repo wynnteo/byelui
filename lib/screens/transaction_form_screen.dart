@@ -651,7 +651,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                     selectedColor: AppTheme.primaryCoral,
                                     backgroundColor: AppTheme.glassBackground,
                                     labelStyle: AppTheme.bodySmall.copyWith(
-                                      color: selected ? Colors.white : AppTheme.textSecondary,
+                                      color: selected ? AppTheme.ink : AppTheme.textSecondary,
                                     ),
                                   );
                                 }).toList(),
@@ -731,9 +731,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           runSpacing: 6,
                           children: _tags.map((tag) {
                             return Chip(
-                              label: Text(tag, style: AppTheme.bodySmall.copyWith(color: Colors.white)),
+                              label: Text(tag, style: AppTheme.bodySmall.copyWith(color: AppTheme.ink)),
                               backgroundColor: AppTheme.primaryCoral.withOpacity(0.35),
-                              deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white),
+                              deleteIcon: const Icon(Icons.close, size: 14, color: AppTheme.ink),
                               onDeleted: () => _removeTag(tag),
                               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               visualDensity: VisualDensity.compact,
@@ -817,7 +817,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.ink),
                             )
                           : const Text('Save transaction'),
                     ),
@@ -847,7 +847,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           child: Text(
             label,
             style: AppTheme.bodyLarge.copyWith(
-              color: selected ? Colors.white : AppTheme.textSecondary,
+              color: selected ? AppTheme.ink : AppTheme.textSecondary,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),

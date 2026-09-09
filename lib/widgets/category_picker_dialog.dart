@@ -4,19 +4,23 @@ import '../models/category.dart';
 import '../theme/app_theme.dart';
 
 const List<Color> kCategoryColorOptions = [
-  AppTheme.primaryCoral,
-  AppTheme.accentAmber,
-  AppTheme.foodColor,
-  AppTheme.transportColor,
-  AppTheme.groceriesColor,
-  AppTheme.billsColor,
-  AppTheme.healthColor,
-  AppTheme.shoppingColor,
-  AppTheme.entertainmentColor,
-  AppTheme.incomeColor,
-  Color(0xFF6366F1),
-  Color(0xFFEC4899),
-  AppTheme.otherColor,
+  Color(0xFFFF6B4A), // coral
+  Color(0xFFF59E0B), // amber
+  Color(0xFFEAB308), // yellow
+  Color(0xFF84CC16), // lime
+  Color(0xFF10B981), // emerald
+  Color(0xFF14B8A6), // teal
+  Color(0xFF06B6D4), // cyan
+  Color(0xFF0EA5E9), // sky
+  Color(0xFF3B82F6), // blue
+  Color(0xFF6366F1), // indigo
+  Color(0xFF8B5CF6), // violet
+  Color(0xFFA855F7), // purple
+  Color(0xFFD946EF), // fuchsia
+  Color(0xFFEC4899), // pink
+  Color(0xFFF43F5E), // rose
+  Color(0xFFEF4444), // red
+  Color(0xFF64748B), // slate — good for "Other" / misc
 ];
 
 /// Shows a dialog to create a new category, or edit an existing one, with a
