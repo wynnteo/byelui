@@ -163,9 +163,13 @@ class DataService {
     DateTime? from,
     DateTime? to,
     String? categoryId,
+    Iterable<String>? categoryIds,
     String? currency,
     String? searchQuery,
     String? tag,
+    Iterable<String>? tags,
+    Iterable<String>? paymentCardIds,
+    Iterable<PaymentMethod>? paymentMethods,
   }) {
     var items = _transactionsBoxSafe.values.toList();
     if (scope != null) items = items.where((t) => t.scope == scope).toList();
@@ -173,10 +177,27 @@ class DataService {
     if (from != null) items = items.where((t) => !t.date.isBefore(from)).toList();
     if (to != null) items = items.where((t) => !t.date.isAfter(to)).toList();
     if (categoryId != null) items = items.where((t) => t.categoryId == categoryId).toList();
+    if (categoryIds != null && categoryIds.isNotEmpty) {
+      final idSet = categoryIds.toSet();
+      items = items.where((t) => idSet.contains(t.categoryId)).toList();
+    }
     if (currency != null) items = items.where((t) => t.currency == currency).toList();
     if (tag != null) {
       final lower = tag.toLowerCase();
       items = items.where((t) => t.tags.any((x) => x.toLowerCase() == lower)).toList();
+    }
+    if (tags != null && tags.isNotEmpty) {
+      final tagSet = tags.map((t) => t.toLowerCase()).toSet();
+      items = items.where((t) => t.tags.any((x) => tagSet.contains(x.toLowerCase()))).toList();
+    }
+    final cardIdSet = paymentCardIds?.toSet() ?? const <String>{};
+    final methodSet = paymentMethods?.toSet() ?? const <PaymentMethod>{};
+    if (cardIdSet.isNotEmpty || methodSet.isNotEmpty) {
+      items = items.where((t) {
+        if (t.paymentCardId != null && cardIdSet.contains(t.paymentCardId)) return true;
+        if (t.paymentMethod != null && methodSet.contains(t.paymentMethod)) return true;
+        return false;
+      }).toList();
     }
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       final q = searchQuery.trim().toLowerCase();

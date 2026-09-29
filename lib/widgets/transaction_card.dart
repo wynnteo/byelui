@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
+import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import 'glass_card.dart';
 
@@ -24,6 +25,20 @@ class TransactionCard extends StatelessWidget {
     final amountColor = isExpense ? AppTheme.textPrimary : AppTheme.successColor;
     final sign = isExpense ? '-' : '+';
     final catColor = category?.color ?? AppTheme.otherColor;
+
+    // Short "paid with" indicator: a named card's first word (e.g. "Mari CC"
+    // -> "Mari") so it reads at a glance, or the generic method label.
+    String? paymentLabel;
+    Color? paymentColor;
+    if (transaction.paymentCardId != null) {
+      final card = DataService().getPaymentCardById(transaction.paymentCardId!);
+      if (card != null) {
+        paymentLabel = card.name.trim().split(RegExp(r'\s+')).first;
+        paymentColor = card.color;
+      }
+    } else if (transaction.paymentMethod != null) {
+      paymentLabel = DataService().paymentMethodLabel(transaction.paymentMethod!);
+    }
 
     return GlassCard(
       onTap: onTap,
@@ -60,6 +75,12 @@ class TransactionCard extends StatelessWidget {
                     ),
                     Text(' · ', style: AppTheme.bodySmall),
                     Text(DateFormat('d MMM').format(transaction.date), style: AppTheme.bodySmall),
+                    if (paymentLabel != null) ...[
+                      Text(' · ', style: AppTheme.bodySmall),
+                      Icon(Icons.credit_card, size: 11, color: paymentColor ?? AppTheme.textTertiary),
+                      const SizedBox(width: 2),
+                      Text(paymentLabel, style: AppTheme.bodySmall.copyWith(color: paymentColor ?? AppTheme.textSecondary)),
+                    ],
                     if (transaction.scope == TransactionScope.family) ...[
                       Text(' · ', style: AppTheme.bodySmall),
                       Text('Family', style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
@@ -84,7 +105,7 @@ class TransactionCard extends StatelessWidget {
                         ),
                         child: Text(
                           tag,
-                          style: AppTheme.caption.copyWith(color: AppTheme.primaryCoral, fontSize: 10),
+                          style: AppTheme.caption.copyWith(color: AppTheme.stampText, fontSize: 10),
                         ),
                       );
                     }).toList(),

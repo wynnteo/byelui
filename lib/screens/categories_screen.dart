@@ -88,7 +88,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     Text('Categories', style: AppTheme.headingMedium),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.add, color: AppTheme.primaryCoral),
+                      icon: const Icon(Icons.add, color: AppTheme.stampText),
                       onPressed: _addCategoryDialog,
                     ),
                   ],

@@ -116,7 +116,7 @@ class _LockScreenState extends State<LockScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(_hasPin ? Icons.lock_outline : Icons.fingerprint, size: 56, color: AppTheme.stamp),
+                    Icon(_hasPin ? Icons.lock_outline : Icons.fingerprint, size: 56, color: AppTheme.stampText),
                     const SizedBox(height: 24),
                     Text('ByeLui is locked', style: AppTheme.headingSmall, textAlign: TextAlign.center),
                     const SizedBox(height: 8),

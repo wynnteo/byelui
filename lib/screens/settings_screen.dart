@@ -154,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   child: Row(
                     children: [
-                      const Icon(Icons.lock_outline, color: AppTheme.primaryCoral),
+                      const Icon(Icons.lock_outline, color: AppTheme.stampText),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -236,7 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
                 child: Row(
                   children: [
-                    const Icon(Icons.category_outlined, color: AppTheme.primaryCoral),
+                    const Icon(Icons.category_outlined, color: AppTheme.stampText),
                     const SizedBox(width: 10),
                     Expanded(child: Text('Categories', style: AppTheme.bodyLarge)),
                     const Icon(Icons.chevron_right, color: AppTheme.textTertiary),

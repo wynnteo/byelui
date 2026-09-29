@@ -179,7 +179,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             children: [
                               Text('${now.year} expense', style: AppTheme.bodySmall),
                               Text('$base ${(yearTotals['expense'] ?? 0).toStringAsFixed(2)}',
-                                  style: AppTheme.headingSmall.copyWith(color: AppTheme.primaryCoral)),
+                                  style: AppTheme.headingSmall.copyWith(color: AppTheme.stampText)),
                             ],
                           ),
                         ),
@@ -235,7 +235,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 Text('Expense', style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${(comparison['current']['expense'] ?? 0).toStringAsFixed(2)}',
-                                  style: AppTheme.headingSmall.copyWith(color: AppTheme.primaryCoral),
+                                  style: AppTheme.headingSmall.copyWith(color: AppTheme.stampText),
                                 ),
                                 _changeLabel(comparison['expenseChangePct'] as double, higherIsBad: true),
                               ],
@@ -306,7 +306,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               if (highlights['topCategoryId'] != null || highlights['topMonth'] != null) ...[
                 Row(
                   children: [
-                    const Icon(Icons.emoji_events_outlined, size: 18, color: AppTheme.primaryCoral),
+                    const Icon(Icons.emoji_events_outlined, size: 18, color: AppTheme.stampText),
                     const SizedBox(width: 8),
                     Text('$highlightYear highlights', style: AppTheme.headingSmall),
                   ],
@@ -330,7 +330,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               ),
                               Text(
                                 '$base ${(highlights['topCategoryAmount'] as double).toStringAsFixed(0)}',
-                                style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryCoral),
+                                style: AppTheme.bodyMedium.copyWith(color: AppTheme.stampText),
                               ),
                             ],
                           ),
@@ -352,7 +352,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               ),
                               Text(
                                 '$base ${(highlights['topMonthAmount'] as double).toStringAsFixed(0)}',
-                                style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryCoral),
+                                style: AppTheme.bodyMedium.copyWith(color: AppTheme.stampText),
                               ),
                             ],
                           ),
@@ -377,7 +377,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       : BarChart(
                           BarChartData(
                             maxY: maxY * 1.2,
-                            barTouchData: BarTouchData(enabled: true),
+                            barTouchData: BarTouchData(
+                              enabled: true,
+                              touchTooltipData: BarTouchTooltipData(
+                                getTooltipColor: (group) => Colors.white,
+                                tooltipBorder: const BorderSide(color: AppTheme.paperLine),
+                                tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                  final label = rodIndex == 0 ? 'Income' : 'Expense';
+                                  return BarTooltipItem(
+                                    '$label\n',
+                                    const TextStyle(color: AppTheme.ink, fontWeight: FontWeight.w700, fontSize: 11),
+                                    children: [
+                                      TextSpan(
+                                        text: '$base ${rod.toY.toStringAsFixed(2)}',
+                                        style: AppTheme.numeral(size: 11, color: AppTheme.ink),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
                             titlesData: FlTitlesData(
                               topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                               rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -413,7 +433,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   ),
                                   BarChartRodData(
                                     toY: m['expense'] as double,
-                                    color: AppTheme.primaryCoral,
+                                    color: AppTheme.warn,
                                     width: 8,
                                     borderRadius: BorderRadius.circular(3),
                                   ),
@@ -430,14 +450,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 children: [
                   _legendDot(AppTheme.successColor, 'Income'),
                   const SizedBox(width: 16),
-                  _legendDot(AppTheme.primaryCoral, 'Expense'),
+                  _legendDot(AppTheme.warn, 'Expense'),
                 ],
               ),
               const SizedBox(height: 24),
 
               Row(
                 children: [
-                  const Icon(Icons.pie_chart_outline_rounded, size: 18, color: AppTheme.primaryCoral),
+                  const Icon(Icons.pie_chart_outline_rounded, size: 18, color: AppTheme.stampText),
                   const SizedBox(width: 8),
                   Text('Spending by category', style: AppTheme.headingSmall),
                 ],
@@ -482,7 +502,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     Text('Total', style: AppTheme.caption),
                                     Text(
                                       '$base ${totalExpense.toStringAsFixed(0)}',
-                                      style: AppTheme.headingSmall.copyWith(color: AppTheme.primaryCoral),
+                                      style: AppTheme.headingSmall.copyWith(color: AppTheme.stampText),
                                     ),
                                   ],
                                 ),
@@ -615,12 +635,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Top tags', style: AppTheme.headingSmall),
-                        GestureDetector(
+                        InkWell(
+                          borderRadius: BorderRadius.circular(20),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const TagInsightsScreen()),
                           ),
-                          child: Text('See all', style: AppTheme.bodySmall.copyWith(color: AppTheme.primaryCoral)),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.stamp.withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('See all', style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText, fontWeight: FontWeight.w600)),
+                                const Icon(Icons.chevron_right, size: 16, color: AppTheme.stampText),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),

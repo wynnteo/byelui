@@ -22,6 +22,7 @@ class AppTheme {
   static const Color inkQuiet = Color(0xFF9BA5AD); // tertiary / caption text — lightened slate
 
   static const Color stamp = Color(0xFFA1B5D8); // the one accent — periwinkle, paired with ink text (not white)
+  static const Color stampText = Color(0xFF3D5A80); // deepened variant for text/icons on the light background — stamp itself is too light to read as text
   static const Color income = Color(0xFF5F7A56); // readable green, derived from the sage C2D8B9
   static const Color incomeTint = Color(0xFFC2D8B9); // sage — background tint for income pills
   static const Color warn = Color(0xFFB5482E); // over-budget rust — deliberately outside the palette so alerts still read as alerts

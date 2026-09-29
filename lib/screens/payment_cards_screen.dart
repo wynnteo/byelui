@@ -148,7 +148,7 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
                     ),
                     Expanded(child: Text('Payment cards', style: AppTheme.headingMedium)),
                     IconButton(
-                      icon: const Icon(Icons.add, color: AppTheme.primaryCoral),
+                      icon: const Icon(Icons.add, color: AppTheme.stampText),
                       onPressed: () => _openEditor(),
                     ),
                   ],

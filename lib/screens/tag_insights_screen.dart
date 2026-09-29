@@ -4,6 +4,7 @@ import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
+import 'all_transactions_screen.dart';
 
 enum _TagRange { month, year, all }
 
@@ -101,6 +102,12 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
                           final entry = sorted[i];
                           final pct = total == 0 ? 0.0 : entry.value / total;
                           return GlassCard(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AllTransactionsScreen(initialTagFilters: {entry.key}),
+                              ),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -108,6 +115,8 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
                                   children: [
                                     Expanded(child: Text(entry.key, style: AppTheme.bodyLarge)),
                                     Text('$base ${entry.value.toStringAsFixed(2)}', style: AppTheme.bodyLarge),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.chevron_right, size: 16, color: AppTheme.textTertiary),
                                   ],
                                 ),
                                 const SizedBox(height: 8),

@@ -25,18 +25,29 @@ class ExportService {
     return '';
   }
 
-  /// Shared row layout for CSV and PDF: Date, Category, Amount, Description,
-  /// Paid By, Remarks, Tags, Scope. Amount is signed (negative for expenses,
-  /// positive for income) since there's no separate Type column.
+  /// Shared row layout for CSV and PDF: Date, Type, Category, Amount,
+  /// Description, Paid By, Remarks, Tags, Scope. Amount is signed (negative
+  /// for expenses, positive for income) so it still sums to a net total in
+  /// a spreadsheet; Type spells it out too so it's readable at a glance.
+  /// Sorted newest-first.
   static List<List<String>> _rows(List<Transaction> transactions) {
+    final sorted = transactions.toList()..sort((a, b) => b.date.compareTo(a.date));
     final rows = <List<String>>[
-      ['Date', 'Category', 'Amount', 'Description', 'Paid By', 'Remarks', 'Tags', 'Scope'],
+      ['Date', 'Type', 'Category', 'Amount', 'Description', 'Paid By', 'Remarks', 'Tags', 'Scope'],
     ];
-    for (final t in transactions) {
+    double totalIncome = 0;
+    double totalExpense = 0;
+    for (final t in sorted) {
       final category = _dataService.getCategoryById(t.categoryId);
       final signedAmount = t.isExpense ? -t.amount : t.amount;
+      if (t.isExpense) {
+        totalExpense += t.amount;
+      } else {
+        totalIncome += t.amount;
+      }
       rows.add([
         DateFormat('yyyy-MM-dd').format(t.date),
+        t.isExpense ? 'Expense' : 'Income',
         category?.name ?? 'Other',
         signedAmount.toStringAsFixed(2),
         t.description,
@@ -46,6 +57,11 @@ class ExportService {
         t.scope == TransactionScope.personal ? 'Personal' : 'Family',
       ]);
     }
+
+    rows.add(['', '', '', '', '', '', '', '', '']);
+    rows.add(['', '', '', totalIncome.toStringAsFixed(2), 'TOTAL INCOME', '', '', '', '']);
+    rows.add(['', '', '', (-totalExpense).toStringAsFixed(2), 'TOTAL EXPENSE', '', '', '', '']);
+    rows.add(['', '', '', (totalIncome - totalExpense).toStringAsFixed(2), 'NET', '', '', '', '']);
     return rows;
   }
 
@@ -61,17 +77,19 @@ class ExportService {
     return file.path;
   }
 
-  /// Writes a real .xlsx workbook with columns: Date, Category, Amount,
-  /// Description, Paid By, Remarks, Tags, Scope — one row per transaction.
-  /// Amount is signed (negative for expenses, positive for income) since
-  /// there's no separate Type column here.
+  /// Writes a real .xlsx workbook with columns: Date, Type, Category,
+  /// Amount, Description, Paid By, Remarks, Tags, Scope — sorted
+  /// newest-first. Amount is signed (negative for expenses, positive for
+  /// income) so it still sums to a net total.
   static Future<String> exportXlsx(List<Transaction> transactions, {String? fileNamePrefix}) async {
+    final sorted = transactions.toList()..sort((a, b) => b.date.compareTo(a.date));
     final workbook = xlsx.Excel.createExcel();
     const sheetName = 'Transactions';
     final sheet = workbook[sheetName];
 
     sheet.appendRow([
       xlsx.TextCellValue('Date'),
+      xlsx.TextCellValue('Type'),
       xlsx.TextCellValue('Category'),
       xlsx.TextCellValue('Amount'),
       xlsx.TextCellValue('Description'),
@@ -81,11 +99,19 @@ class ExportService {
       xlsx.TextCellValue('Scope'),
     ]);
 
-    for (final t in transactions) {
+    double totalIncome = 0;
+    double totalExpense = 0;
+    for (final t in sorted) {
       final category = _dataService.getCategoryById(t.categoryId);
       final signedAmount = t.isExpense ? -t.amount : t.amount;
+      if (t.isExpense) {
+        totalExpense += t.amount;
+      } else {
+        totalIncome += t.amount;
+      }
       sheet.appendRow([
         xlsx.TextCellValue(DateFormat('yyyy-MM-dd').format(t.date)),
+        xlsx.TextCellValue(t.isExpense ? 'Expense' : 'Income'),
         xlsx.TextCellValue(category?.name ?? 'Other'),
         xlsx.DoubleCellValue(signedAmount),
         xlsx.TextCellValue(t.description),
@@ -95,6 +121,20 @@ class ExportService {
         xlsx.TextCellValue(t.scope == TransactionScope.personal ? 'Personal' : 'Family'),
       ]);
     }
+
+    sheet.appendRow([xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue('')]);
+    sheet.appendRow([
+      xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
+      xlsx.DoubleCellValue(totalIncome), xlsx.TextCellValue('TOTAL INCOME'),
+    ]);
+    sheet.appendRow([
+      xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
+      xlsx.DoubleCellValue(-totalExpense), xlsx.TextCellValue('TOTAL EXPENSE'),
+    ]);
+    sheet.appendRow([
+      xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
+      xlsx.DoubleCellValue(totalIncome - totalExpense), xlsx.TextCellValue('NET'),
+    ]);
 
     // createExcel() ships with a default empty sheet (usually 'Sheet1') —
     // drop anything that isn't the one we just filled.
@@ -162,7 +202,7 @@ class ExportService {
             cellAlignment: pw.Alignment.centerLeft,
             columnWidths: {
               0: const pw.FixedColumnWidth(50),
-              3: const pw.FlexColumnWidth(2),
+              4: const pw.FlexColumnWidth(2),
             },
           ),
         ],

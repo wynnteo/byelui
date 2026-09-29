@@ -52,10 +52,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     _bannerAd!.load();
   }
 
-  // TODO: replace with ByeLui's real ad unit IDs once registered in AdMob.
   String get _adUnitId {
     if (const bool.fromEnvironment('dart.vm.product')) {
-      return 'ca-app-pub-3940256099942544/6300978111'; // placeholder — swap for prod unit
+      return 'ca-app-pub-6586968137131686/1306249287'; // placeholder — swap for prod unit
     } else {
       return 'ca-app-pub-3940256099942544/6300978111'; // Google test banner unit
     }

@@ -53,7 +53,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                     Text('Recurring', style: AppTheme.headingMedium),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.add, color: AppTheme.primaryCoral),
+                      icon: const Icon(Icons.add, color: AppTheme.stampText),
                       onPressed: () async {
                         await Navigator.push(
                           context,

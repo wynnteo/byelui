@@ -10,7 +10,6 @@ import '../widgets/banner_ad.dart';
 import 'transaction_form_screen.dart';
 import 'analytics_screen.dart';
 import 'settings_screen.dart';
-import 'recurring_screen.dart';
 import 'all_transactions_screen.dart';
 import 'budgets_screen.dart';
 
@@ -48,35 +47,43 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                Text('ByeLui', style: AppTheme.headingLarge),
+                const SizedBox(height: 16),
+
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Text('ByeLui', style: AppTheme.headingLarge),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.repeat, color: AppTheme.textSecondary),
-                          tooltip: 'Recurring',
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const RecurringScreen()),
-                            );
-                            _refresh();
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined, color: AppTheme.textSecondary),
-                          tooltip: 'Settings',
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                            );
-                            _refresh();
-                          },
-                        ),
-                      ],
+                    _QuickAction(
+                      icon: Icons.bar_chart_rounded,
+                      label: 'Analytics',
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+                        _refresh();
+                      },
+                    ),
+                    _QuickAction(
+                      icon: Icons.pie_chart_outline_rounded,
+                      label: 'Budget',
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen()));
+                        _refresh();
+                      },
+                    ),
+                    _QuickAction(
+                      icon: Icons.receipt_long_outlined,
+                      label: 'All',
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const AllTransactionsScreen()));
+                        _refresh();
+                      },
+                    ),
+                    _QuickAction(
+                      icon: Icons.settings_outlined,
+                      label: 'Settings',
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                        _refresh();
+                      },
                     ),
                   ],
                 ),
@@ -115,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Text('Expense', style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${expense.toStringAsFixed(2)}',
-                                  style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.stamp),
+                                  style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.stampText),
                                 ),
                               ],
                             ),
@@ -287,7 +294,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Recent transactions', style: AppTheme.headingSmall),
-                    GestureDetector(
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
                       onTap: () async {
                         await Navigator.push(
                           context,
@@ -295,7 +303,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                         _refresh();
                       },
-                      child: Text('See all', style: AppTheme.bodySmall.copyWith(color: AppTheme.primaryCoral)),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.stamp.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('See all', style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText, fontWeight: FontWeight.w600)),
+                            const Icon(Icons.chevron_right, size: 16, color: AppTheme.stampText),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -355,6 +376,43 @@ class _HomeScreenState extends State<HomeScreen> {
           color: AppTheme.primaryCharcoal,
           child: const BannerAdWidget(),
         ),
+      ),
+    );
+  }
+}
+
+/// A round, tinted icon button with a caption — used for the top-of-home
+/// shortcuts to Analytics / Budget / All transactions, so they're obvious
+/// at a glance instead of buried as text links further down the page.
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAction({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(28),
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppTheme.stamp.withOpacity(0.25),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.stamp.withOpacity(0.4)),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, color: AppTheme.stampText, size: 22),
+          ),
+          const SizedBox(height: 6),
+          Text(label, style: AppTheme.bodySmall),
+        ],
       ),
     );
   }
