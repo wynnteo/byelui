@@ -161,6 +161,13 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
   DateTime _startDate = DateTime.now();
   Category? _selectedCategory;
 
+  final _tagController = TextEditingController();
+  List<String> _tags = [];
+  List<String> _suggestedTags = [];
+  List<String> _matchingExistingTags = [];
+  PaymentMethod? _paymentMethod;
+  String? _paymentCardId;
+
   static const _currencies = ['SGD', 'MYR', 'USD'];
 
   @override
@@ -176,10 +183,73 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
       _frequency = r.frequency;
       _startDate = r.startDate;
       _selectedCategory = _dataService.getCategoryById(r.categoryId);
+      _tags = List.from(r.tags);
+      _paymentMethod = r.paymentMethod;
+      _paymentCardId = r.paymentCardId;
     } else {
       final cats = _dataService.getCategories(type: _type);
       _selectedCategory = cats.isNotEmpty ? cats.first : null;
     }
+    _descriptionController.addListener(_onDescriptionChanged);
+    _tagController.addListener(_onTagInputChanged);
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    _tagController.dispose();
+    super.dispose();
+  }
+
+  void _onDescriptionChanged() {
+    final suggestions = _dataService.suggestTags(_descriptionController.text).where((s) => !_tags.contains(s)).toList();
+    if (suggestions.toString() != _suggestedTags.toString()) {
+      setState(() => _suggestedTags = suggestions);
+    }
+  }
+
+  void _onTagInputChanged() {
+    final query = _tagController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      if (_matchingExistingTags.isNotEmpty) setState(() => _matchingExistingTags = []);
+      return;
+    }
+    final matches = _dataService
+        .getAllTags()
+        .where((t) => t.toLowerCase().contains(query) && !_tags.contains(t))
+        .toList();
+    if (matches.toString() != _matchingExistingTags.toString()) {
+      setState(() => _matchingExistingTags = matches);
+    }
+  }
+
+  void _addTag(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty || _tags.contains(trimmed)) return;
+    setState(() {
+      _tags.add(trimmed);
+      _suggestedTags.remove(trimmed);
+      _matchingExistingTags = [];
+      _tagController.clear();
+    });
+  }
+
+  void _removeTag(String tag) => setState(() => _tags.remove(tag));
+
+  // Tapping the selected chip again clears it - paying method is optional.
+  void _toggleCard(String cardId) {
+    setState(() {
+      _paymentCardId = _paymentCardId == cardId ? null : cardId;
+      _paymentMethod = null;
+    });
+  }
+
+  void _toggleMethod(PaymentMethod method) {
+    setState(() {
+      _paymentMethod = _paymentMethod == method ? null : method;
+      _paymentCardId = null;
+    });
   }
 
   Future<void> _save() async {
@@ -201,6 +271,11 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
         description: _descriptionController.text.trim(),
         frequency: _frequency,
         startDate: _startDate,
+        tags: _tags,
+        paymentMethod: _paymentMethod,
+        clearPaymentMethod: _paymentMethod == null,
+        paymentCardId: _paymentCardId,
+        clearPaymentCard: _paymentCardId == null,
       ));
     } else {
       await _dataService.addRecurringTransaction(
@@ -212,6 +287,9 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
         description: _descriptionController.text.trim(),
         frequency: _frequency,
         startDate: _startDate,
+        tags: _tags,
+        paymentMethod: _paymentMethod,
+        paymentCardId: _paymentCardId,
       );
     }
     if (mounted) Navigator.pop(context);
@@ -305,6 +383,145 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                           );
                         }).toList(),
                       ),
+                      const SizedBox(height: 16),
+
+                      Text('Paid with', style: AppTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ..._dataService.getPaymentCards(activeOnly: true).map((card) {
+                            final selected = card.id == _paymentCardId;
+                            return GestureDetector(
+                              onTap: () => _toggleCard(card.id),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: selected ? card.color.withOpacity(0.2) : AppTheme.glassBackground,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: selected ? card.color : AppTheme.glassBorder),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(card.icon, size: 16, color: card.color),
+                                    const SizedBox(width: 6),
+                                    Text(card.name, style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                          ...[PaymentMethod.cash, PaymentMethod.eWallet, PaymentMethod.bankTransfer, PaymentMethod.other].map((method) {
+                            final selected = method == _paymentMethod;
+                            return GestureDetector(
+                              onTap: () => _toggleMethod(method),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: selected ? AppTheme.accentAmber.withOpacity(0.2) : AppTheme.glassBackground,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: selected ? AppTheme.accentAmber : AppTheme.glassBorder),
+                                ),
+                                child: Text(
+                                  _dataService.paymentMethodLabel(method),
+                                  style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      Text('Tags', style: AppTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _tagController,
+                        style: AppTheme.bodyLarge,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: _addTag,
+                        decoration: AppTheme.glassInputDecoration(
+                          hintText: 'Add a tag, e.g. Netflix, Rent',
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.add, color: AppTheme.accentAmber),
+                            onPressed: () => _addTag(_tagController.text),
+                          ),
+                        ),
+                      ),
+                      if (_matchingExistingTags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.glassBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.glassBorder),
+                          ),
+                          constraints: const BoxConstraints(maxHeight: 160),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            itemCount: _matchingExistingTags.length,
+                            itemBuilder: (ctx, i) {
+                              final tag = _matchingExistingTags[i];
+                              return ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.sell_outlined, size: 16, color: AppTheme.textSecondary),
+                                title: Text(tag, style: AppTheme.bodyMedium),
+                                onTap: () => _addTag(tag),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                      if (_tags.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: _tags.map((tag) {
+                            return Chip(
+                              label: Text(tag, style: AppTheme.bodySmall.copyWith(color: AppTheme.ink)),
+                              backgroundColor: AppTheme.primaryCoral.withOpacity(0.35),
+                              deleteIcon: const Icon(Icons.close, size: 14, color: AppTheme.ink),
+                              onDeleted: () => _removeTag(tag),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      if (_suggestedTags.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text('Suggested', style: AppTheme.caption),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: _suggestedTags.map((tag) {
+                            return GestureDetector(
+                              onTap: () => _addTag(tag),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.glassBackground,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppTheme.accentAmber.withOpacity(0.5)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.auto_awesome, size: 12, color: AppTheme.accentAmber),
+                                    const SizedBox(width: 4),
+                                    Text(tag, style: AppTheme.bodySmall),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                       const SizedBox(height: 16),
 
                       Text('Frequency', style: AppTheme.bodySmall),

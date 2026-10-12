@@ -385,6 +385,8 @@ class DataService {
     required DateTime startDate,
     DateTime? endDate,
     PaymentMethod? paymentMethod,
+    List<String>? tags,
+    String? paymentCardId,
   }) async {
     final recurring = RecurringTransaction(
       id: const Uuid().v4(),
@@ -400,6 +402,8 @@ class DataService {
       nextDueDate: startDate,
       endDate: endDate,
       paymentMethod: paymentMethod,
+      tags: tags ?? [],
+      paymentCardId: paymentCardId,
     );
     await _recurringBoxSafe.put(recurring.id, recurring);
     return recurring;
@@ -430,6 +434,10 @@ class DataService {
           description: recurring.description,
           note: recurring.note,
           paymentMethod: recurring.paymentMethod,
+          // No tags picked on the rule -> pass null so the generated entry
+          // still gets keyword-suggested tags, exactly as before.
+          tags: recurring.tags.isEmpty ? null : List<String>.from(recurring.tags),
+          paymentCardId: recurring.paymentCardId,
         );
         created++;
         final next = recurring.computeNextDate(dueDate);
@@ -887,6 +895,8 @@ class DataService {
             'endDate': r.endDate?.toIso8601String(),
             'isActive': r.isActive,
             'paymentMethod': r.paymentMethod?.toJson(),
+            'tags': r.tags,
+            'paymentCardId': r.paymentCardId,
           }).toList(),
       'budgets': _budgetsBoxSafe.values.map((b) => {
             'id': b.id,
@@ -993,6 +1003,8 @@ class DataService {
         endDate: r['endDate'] != null ? DateTime.parse(r['endDate']) : null,
         isActive: r['isActive'] ?? true,
         paymentMethod: r['paymentMethod'] != null ? PaymentMethod.fromJson(r['paymentMethod']) : null,
+        tags: (r['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
+        paymentCardId: r['paymentCardId'],
       );
       await _recurringBoxSafe.put(rec.id, rec);
     }

@@ -31,13 +31,15 @@ class RecurringTransactionAdapter extends TypeAdapter<RecurringTransaction> {
       endDate: fields[11] as DateTime?,
       isActive: fields[12] == null ? true : fields[12] as bool,
       paymentMethod: fields[13] as PaymentMethod?,
+      tags: fields[14] == null ? [] : (fields[14] as List?)?.cast<String>(),
+      paymentCardId: fields[15] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, RecurringTransaction obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -65,7 +67,11 @@ class RecurringTransactionAdapter extends TypeAdapter<RecurringTransaction> {
       ..writeByte(12)
       ..write(obj.isActive)
       ..writeByte(13)
-      ..write(obj.paymentMethod);
+      ..write(obj.paymentMethod)
+      ..writeByte(14)
+      ..write(obj.tags)
+      ..writeByte(15)
+      ..write(obj.paymentCardId);
   }
 
   @override

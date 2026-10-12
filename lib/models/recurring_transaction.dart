@@ -73,6 +73,12 @@ class RecurringTransaction extends HiveObject {
   @HiveField(13)
   PaymentMethod? paymentMethod;
 
+  @HiveField(14, defaultValue: <String>[])
+  List<String> tags;
+
+  @HiveField(15)
+  String? paymentCardId;
+
   RecurringTransaction({
     required this.id,
     required this.amount,
@@ -88,7 +94,9 @@ class RecurringTransaction extends HiveObject {
     this.endDate,
     this.isActive = true,
     this.paymentMethod,
-  });
+    List<String>? tags,
+    this.paymentCardId,
+  }) : tags = tags ?? [];
 
   DateTime computeNextDate(DateTime from) {
     switch (frequency) {
@@ -124,6 +132,10 @@ class RecurringTransaction extends HiveObject {
     DateTime? endDate,
     bool? isActive,
     PaymentMethod? paymentMethod,
+    bool clearPaymentMethod = false,
+    List<String>? tags,
+    String? paymentCardId,
+    bool clearPaymentCard = false,
   }) {
     return RecurringTransaction(
       id: id,
@@ -139,7 +151,9 @@ class RecurringTransaction extends HiveObject {
       nextDueDate: nextDueDate ?? this.nextDueDate,
       endDate: endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentMethod: clearPaymentMethod ? null : (paymentMethod ?? this.paymentMethod),
+      tags: tags ?? this.tags,
+      paymentCardId: clearPaymentCard ? null : (paymentCardId ?? this.paymentCardId),
     );
   }
 }

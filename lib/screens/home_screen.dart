@@ -239,22 +239,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 }),
 
-                GlassCard(
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
-                    );
-                  },
-                  child: Row(
-                    children: [
-                      const Icon(Icons.bar_chart, color: AppTheme.accentAmber),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text('View analytics', style: AppTheme.bodyLarge)),
-                      const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
-                    ],
-                  ),
-                ),
+                // GlassCard(
+                //   onTap: () async {
+                //     await Navigator.push(
+                //       context,
+                //       MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+                //     );
+                //   },
+                //   child: Row(
+                //     children: [
+                //       const Icon(Icons.bar_chart, color: AppTheme.accentAmber),
+                //       const SizedBox(width: 10),
+                //       Expanded(child: Text('View analytics', style: AppTheme.bodyLarge)),
+                //       const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                //     ],
+                //   ),
+                // ),
                 const SizedBox(height: 20),
 
                 Builder(builder: (context) {
