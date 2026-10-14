@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'transaction.dart';
 import 'category.dart';
+import '../i18n/s.dart';
 
 part 'recurring_transaction.g.dart';
 
@@ -18,13 +19,13 @@ enum RecurrenceFrequency {
   String get label {
     switch (this) {
       case RecurrenceFrequency.daily:
-        return 'Daily';
+        return S.t.daily;
       case RecurrenceFrequency.weekly:
-        return 'Weekly';
+        return S.t.weekly;
       case RecurrenceFrequency.monthly:
-        return 'Monthly';
+        return S.t.monthly;
       case RecurrenceFrequency.yearly:
-        return 'Yearly';
+        return S.t.yearly;
     }
   }
 }
@@ -126,6 +127,7 @@ class RecurringTransaction extends HiveObject {
     String? categoryId,
     String? description,
     String? note,
+    bool clearNote = false,
     RecurrenceFrequency? frequency,
     DateTime? startDate,
     DateTime? nextDueDate,
@@ -145,7 +147,7 @@ class RecurringTransaction extends HiveObject {
       scope: scope ?? this.scope,
       categoryId: categoryId ?? this.categoryId,
       description: description ?? this.description,
-      note: note ?? this.note,
+      note: clearNote ? null : (note ?? this.note),
       frequency: frequency ?? this.frequency,
       startDate: startDate ?? this.startDate,
       nextDueDate: nextDueDate ?? this.nextDueDate,

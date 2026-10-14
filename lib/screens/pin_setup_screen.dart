@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../services/security_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
+import '../i18n/s.dart';
 
 class PinSetupScreen extends StatefulWidget {
   const PinSetupScreen({super.key});
@@ -48,30 +49,30 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     setState(() => _error = null);
 
     if (_hasPin && _currentController.text.isEmpty) {
-      setState(() => _error = 'Enter your current PIN');
+      setState(() => _error = S.t.enterCurrentPinMsg);
       return;
     }
     if (_newController.text.length < 4) {
-      setState(() => _error = 'New PIN must be at least 4 digits');
+      setState(() => _error = S.t.newPinMin);
       return;
     }
     if (_newController.text != _confirmController.text) {
-      setState(() => _error = "New PINs don't match");
+      setState(() => _error = S.t.pinsDontMatch);
       return;
     }
 
     setState(() => _saving = true);
     try {
       if (_hasPin) {
-        final valid = await _securityService.verifyPin(_currentController.text);
-        if (!valid) {
-          setState(() => _error = 'Current PIN is incorrect');
+        final check = await _securityService.checkPin(_currentController.text);
+        if (!check.ok) {
+          setState(() => _error = _pinFailureMessage(check));
           return;
         }
       }
       await _securityService.setPin(_newController.text);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_hasPin ? 'PIN updated' : 'PIN saved')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_hasPin ? S.t.pinUpdated : S.t.pinSaved)));
         Navigator.pop(context);
       }
     } finally {
@@ -79,14 +80,21 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     }
   }
 
+  String _pinFailureMessage(PinCheckResult check) {
+    if (check.isLocked) {
+      return S.t.tooManyWrongAttempts(formatLockDuration(check.lockedFor!));
+    }
+    return S.t.currentPinIncorrect;
+  }
+
   Future<void> _removePin() async {
     if (_currentController.text.isEmpty) {
-      setState(() => _error = 'Enter your current PIN to remove it');
+      setState(() => _error = S.t.enterCurrentPinToRemove);
       return;
     }
-    final valid = await _securityService.verifyPin(_currentController.text);
-    if (!valid) {
-      setState(() => _error = 'Current PIN is incorrect');
+    final check = await _securityService.checkPin(_currentController.text);
+    if (!check.ok) {
+      setState(() => _error = _pinFailureMessage(check));
       return;
     }
 
@@ -94,17 +102,16 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.primaryCharcoal,
-        title: const Text('Remove PIN lock?', style: AppTheme.headingSmall),
+        title: Text(S.t.removePinLockQ, style: AppTheme.headingSmall),
         content: Text(
-          'If biometric unlock is also on, it will keep working on its own. '
-          "Otherwise ByeLui will open without needing to unlock.",
+          S.t.removePinBody,
           style: AppTheme.bodyMedium,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove', style: TextStyle(color: AppTheme.errorColor)),
+            child: Text(S.t.remove, style: TextStyle(color: AppTheme.errorColor)),
           ),
         ],
       ),
@@ -130,13 +137,13 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(backgroundColor: AppTheme.primaryCharcoal, body: Center(child: CircularProgressIndicator()));
+      return Scaffold(backgroundColor: AppTheme.primaryCharcoal, body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -144,27 +151,27 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.close, color: AppTheme.textPrimary),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text(_hasPin ? 'Change PIN' : 'Set up PIN', style: AppTheme.headingMedium),
+                  Text(_hasPin ? S.t.changePin : S.t.setUpPin, style: AppTheme.headingMedium),
                 ],
               ),
               const SizedBox(height: 16),
 
               if (_hasPin) ...[
-                Text('Current PIN', style: AppTheme.bodySmall),
+                Text(S.t.currentPin, style: AppTheme.bodySmall),
                 const SizedBox(height: 6),
-                _pinField(_currentController, 'Enter current PIN'),
+                _pinField(_currentController, S.t.enterCurrentPinHint),
                 const SizedBox(height: 16),
               ],
 
-              Text(_hasPin ? 'New PIN' : 'PIN (4–6 digits)', style: AppTheme.bodySmall),
+              Text(_hasPin ? S.t.newPin : S.t.pinHint, style: AppTheme.bodySmall),
               const SizedBox(height: 6),
               _pinField(_newController, '••••'),
               const SizedBox(height: 16),
 
-              Text('Confirm PIN', style: AppTheme.bodySmall),
+              Text(S.t.confirmPin, style: AppTheme.bodySmall),
               const SizedBox(height: 6),
               _pinField(_confirmController, '••••'),
 
@@ -181,7 +188,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   child: ElevatedButton(
                     style: AppTheme.primaryButtonStyle,
                     onPressed: _saving ? null : _save,
-                    child: Text(_hasPin ? 'Update PIN' : 'Save PIN'),
+                    child: Text(_hasPin ? S.t.updatePin : S.t.savePin),
                   ),
                 ),
               ),
@@ -192,14 +199,14 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   onTap: _removePin,
                   child: Row(
                     children: [
-                      const Icon(Icons.lock_open, color: AppTheme.errorColor),
+                      Icon(Icons.lock_open, color: AppTheme.errorColor),
                       const SizedBox(width: 10),
-                      Text('Remove PIN lock', style: AppTheme.bodyLarge.copyWith(color: AppTheme.errorColor)),
+                      Text(S.t.removePinLock, style: AppTheme.bodyLarge.copyWith(color: AppTheme.errorColor)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text('Uses the current PIN above to confirm removal.', style: AppTheme.caption),
+                Text(S.t.removePinConfirmHint, style: AppTheme.caption),
               ],
             ],
           ),

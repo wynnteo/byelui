@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
 import '../models/payment_card.dart';
@@ -8,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/scope_toggle.dart';
 import '../widgets/swipeable_transaction_card.dart';
 import 'transaction_form_screen.dart';
+import '../i18n/s.dart';
 
 class AllTransactionsScreen extends StatefulWidget {
   /// Pre-selected tags, e.g. when arriving from Tag Insights with a tag
@@ -104,10 +104,10 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Filters', style: AppTheme.headingMedium),
+                          Text(S.t.filters, style: AppTheme.headingMedium),
                           TextButton(
                             onPressed: () => setSheetState(_clearFilters),
-                            child: Text('Clear all', style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText)),
+                            child: Text(S.t.clearAll, style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText)),
                           ),
                         ],
                       ),
@@ -116,7 +116,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                         child: ListView(
                           controller: scrollController,
                           children: [
-                            Text('Scope', style: AppTheme.caption),
+                            Text(S.t.scope, style: AppTheme.caption),
                             const SizedBox(height: 8),
                             ScopeToggle(
                               value: _scopeFilter,
@@ -124,21 +124,21 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                             ),
                             const SizedBox(height: 20),
 
-                            Text('Type', style: AppTheme.caption),
+                            Text(S.t.type, style: AppTheme.caption),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                _TypeOption(label: 'All', selected: _typeFilter == null, onTap: () => setSheetState(() => _typeFilter = null)),
+                                _TypeOption(label: S.t.all, selected: _typeFilter == null, onTap: () => setSheetState(() => _typeFilter = null)),
                                 const SizedBox(width: 8),
                                 _TypeOption(
-                                  label: 'Income',
+                                  label: S.t.income,
                                   selected: _typeFilter == TransactionType.income,
                                   color: AppTheme.successColor,
                                   onTap: () => setSheetState(() => _typeFilter = TransactionType.income),
                                 ),
                                 const SizedBox(width: 8),
                                 _TypeOption(
-                                  label: 'Expense',
+                                  label: S.t.expense,
                                   selected: _typeFilter == TransactionType.expense,
                                   color: AppTheme.warn,
                                   onTap: () => setSheetState(() => _typeFilter = TransactionType.expense),
@@ -149,7 +149,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
 
                             Row(
                               children: [
-                                Text('Paid with', style: AppTheme.caption),
+                                Text(S.t.paidWith, style: AppTheme.caption),
                                 if (_cardFilters.isNotEmpty || _methodFilters.isNotEmpty) ...[
                                   const SizedBox(width: 6),
                                   Text(
@@ -165,7 +165,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                               runSpacing: 8,
                               children: [
                                 ...cards.map((c) => _toggleChip(
-                                      label: c.name,
+                                      label: c.displayName,
                                       selected: _cardFilters.contains(c.id),
                                       onTap: () => setSheetState(() {
                                         if (!_cardFilters.remove(c.id)) _cardFilters.add(c.id);
@@ -185,7 +185,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
 
                             Row(
                               children: [
-                                Text('Categories', style: AppTheme.caption),
+                                Text(S.t.categories, style: AppTheme.caption),
                                 if (_categoryFilters.isNotEmpty) ...[
                                   const SizedBox(width: 6),
                                   Text('(${_categoryFilters.length})', style: AppTheme.caption.copyWith(color: AppTheme.stampText)),
@@ -198,7 +198,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                               runSpacing: 8,
                               children: categories
                                   .map((c) => _toggleChip(
-                                        label: c.name,
+                                        label: c.displayName,
                                         selected: _categoryFilters.contains(c.id),
                                         onTap: () => setSheetState(() {
                                           if (!_categoryFilters.remove(c.id)) _categoryFilters.add(c.id);
@@ -211,7 +211,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                               const SizedBox(height: 20),
                               Row(
                                 children: [
-                                  Text('Tags', style: AppTheme.caption),
+                                  Text(S.t.tags, style: AppTheme.caption),
                                   if (_tagFilters.isNotEmpty) ...[
                                     const SizedBox(width: 6),
                                     Text('(${_tagFilters.length})', style: AppTheme.caption.copyWith(color: AppTheme.stampText)),
@@ -243,7 +243,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                         child: ElevatedButton(
                           style: AppTheme.primaryButtonStyle,
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Show results'),
+                          child: Text(S.t.showResults),
                         ),
                       ),
                     ],
@@ -273,10 +273,10 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (selected) ...[
-              const Icon(Icons.check, size: 13, color: AppTheme.ink),
+              Icon(Icons.check, size: 13, color: AppTheme.onStamp),
               const SizedBox(width: 4),
             ],
-            Text(label, style: AppTheme.bodySmall.copyWith(color: selected ? AppTheme.ink : AppTheme.textSecondary)),
+            Text(label, style: AppTheme.bodySmall.copyWith(color: selected ? AppTheme.onStamp : AppTheme.textSecondary)),
           ],
         ),
       ),
@@ -292,19 +292,19 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
 
     if (_scopeFilter != null) {
       chips.add(_removableChip(
-        _scopeFilter == TransactionScope.personal ? 'Personal' : 'Family',
+        _scopeFilter == TransactionScope.personal ? S.t.personal : S.t.family,
         () => setState(() => _scopeFilter = null),
       ));
     }
     if (_typeFilter != null) {
       chips.add(_removableChip(
-        _typeFilter == TransactionType.income ? 'Income' : 'Expense',
+        _typeFilter == TransactionType.income ? S.t.income : S.t.expense,
         () => setState(() => _typeFilter = null),
       ));
     }
     for (final id in _categoryFilters) {
       final matches = categories.where((c) => c.id == id);
-      final name = matches.isNotEmpty ? matches.first.name : 'Category';
+      final name = matches.isNotEmpty ? matches.first.name : S.t.category;
       chips.add(_removableChip(name, () => setState(() => _categoryFilters.remove(id))));
     }
     for (final tg in _tagFilters) {
@@ -313,7 +313,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
     for (final id in _cardFilters) {
       final cards = _dataService.getPaymentCards();
       final matches = cards.where((c) => c.id == id);
-      final name = matches.isNotEmpty ? matches.first.name : 'Card';
+      final name = matches.isNotEmpty ? matches.first.name : S.t.card;
       chips.add(_removableChip(name, () => setState(() => _cardFilters.remove(id))));
     }
     for (final m in _methodFilters) {
@@ -348,7 +348,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
           children: [
             Text(label, style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText)),
             const SizedBox(width: 4),
-            const Icon(Icons.close, size: 13, color: AppTheme.stampText),
+            Icon(Icons.close, size: 13, color: AppTheme.stampText),
           ],
         ),
       ),
@@ -389,7 +389,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -398,15 +398,15 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Expanded(child: Text('All transactions', style: AppTheme.headingMedium)),
+                    Expanded(child: Text(S.t.allTransactions, style: AppTheme.headingMedium)),
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.tune, color: AppTheme.textPrimary),
+                          icon: Icon(Icons.tune, color: AppTheme.textPrimary),
                           onPressed: _openFilterSheet,
                         ),
                         if (_hasActiveFilters)
@@ -420,7 +420,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                               alignment: Alignment.center,
                               child: Text(
                                 '$_activeFilterCount',
-                                style: AppTheme.caption.copyWith(color: AppTheme.ink, fontSize: 9, fontWeight: FontWeight.w700),
+                                style: AppTheme.caption.copyWith(color: AppTheme.onStamp, fontSize: 9, fontWeight: FontWeight.w700),
                               ),
                             ),
                           ),
@@ -436,12 +436,12 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                   style: AppTheme.bodyLarge,
                   onChanged: (v) => setState(() => _search = v),
                   decoration: AppTheme.glassInputDecoration(
-                    hintText: 'Search all time: description, note, tag...',
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary, size: 20),
+                    hintText: S.t.searchHint,
+                    prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary, size: 20),
                     suffixIcon: _search.isEmpty
                         ? null
                         : IconButton(
-                            icon: const Icon(Icons.clear, color: AppTheme.textSecondary, size: 18),
+                            icon: Icon(Icons.clear, color: AppTheme.textSecondary, size: 18),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _search = '');
@@ -460,15 +460,15 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chevron_left, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.chevron_left, color: AppTheme.textSecondary),
                       onPressed: () => _shiftMonth(-1),
                     ),
                     Text(
-                      isCurrentMonth ? 'This month · ${DateFormat('MMM yyyy').format(_selectedMonth)}' : DateFormat('MMMM yyyy').format(_selectedMonth),
+                      isCurrentMonth ? S.t.thisMonthDot(S.monthYearShort(_selectedMonth)) : S.monthYearLong(_selectedMonth),
                       style: AppTheme.headingSmall,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                       onPressed: isCurrentMonth ? null : () => _shiftMonth(1),
                     ),
                   ],
@@ -479,13 +479,13 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Income $base ${income.toStringAsFixed(2)}',
+                          S.t.incomeAmount('$base ${income.toStringAsFixed(2)}'),
                           style: AppTheme.bodySmall.copyWith(color: AppTheme.successColor),
                         ),
                       ),
                       Expanded(
                         child: Text(
-                          'Expense $base ${expense.toStringAsFixed(2)}',
+                          S.t.expenseAmount('$base ${expense.toStringAsFixed(2)}'),
                           style: AppTheme.bodySmall.copyWith(color: AppTheme.warn),
                           textAlign: TextAlign.end,
                         ),
@@ -499,7 +499,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('${transactions.length} result(s) across all time', style: AppTheme.bodySmall),
+                    child: Text(S.t.resultsAcrossAllTime(transactions.length), style: AppTheme.bodySmall),
                   ),
                 ),
 
@@ -507,7 +507,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                 child: transactions.isEmpty
                     ? Center(
                         child: Text(
-                          _isSearching || _hasActiveFilters ? 'No matching transactions' : 'No transactions this month',
+                          _isSearching || _hasActiveFilters ? S.t.noMatchingTransactions : S.t.noTransactionsThisMonth,
                           style: AppTheme.bodyMedium,
                         ),
                       )

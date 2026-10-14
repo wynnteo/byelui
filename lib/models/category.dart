@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../i18n/s.dart';
 
 part 'category.g.dart';
 
@@ -51,6 +52,28 @@ class Category extends HiveObject {
   });
 
   Color get color => Color(colorValue);
+
+  String get displayName {
+    if (!isDefault) return name;
+    String tr(String english, String translated) => name == english ? translated : name;
+    final t = S.t;
+    switch (id) {
+      case 'exp_food': return tr('Food', t.catFood);
+      case 'exp_transport': return tr('Transport', t.catTransport);
+      case 'exp_groceries': return tr('Groceries', t.catGroceries);
+      case 'exp_bills': return tr('Bills', t.catBills);
+      case 'exp_health': return tr('Health', t.catHealth);
+      case 'exp_shopping': return tr('Shopping', t.catShopping);
+      case 'exp_entertainment': return tr('Entertainment', t.catEntertainment);
+      case 'exp_education': return tr('Education', t.catEducation);
+      case 'exp_other': return tr('Other', t.catOther);
+      case 'inc_salary': return tr('Salary', t.catSalary);
+      case 'inc_bonus': return tr('Bonus', t.catBonus);
+      case 'inc_gift': return tr('Gift', t.catGift);
+      case 'inc_other': return tr('Other income', t.catOtherIncome);
+      default: return name;
+    }
+  }
 
   IconData get icon {
     switch (iconName) {
@@ -140,16 +163,16 @@ class Category extends HiveObject {
       Category(id: 'exp_shopping', name: 'Shopping', iconName: 'shopping', colorValue: AppTheme.shoppingColor.value, type: TransactionType.expense, isDefault: true),
       Category(id: 'exp_entertainment', name: 'Entertainment', iconName: 'entertainment', colorValue: AppTheme.entertainmentColor.value, type: TransactionType.expense, isDefault: true),
       Category(id: 'exp_education', name: 'Education', iconName: 'education', colorValue: AppTheme.shoppingColor.value, type: TransactionType.expense, isDefault: true),
-      Category(id: 'exp_other', name: 'Other', iconName: 'other', colorValue: AppTheme.otherColor.value, type: TransactionType.expense, isDefault: true),
+      Category(id: 'exp_other', name: 'Other', iconName: 'other', colorValue: AppTheme.otherFixed.value, type: TransactionType.expense, isDefault: true),
     ];
   }
 
   static List<Category> defaultIncomeCategories() {
     return [
-      Category(id: 'inc_salary', name: 'Salary', iconName: 'salary', colorValue: AppTheme.incomeColor.value, type: TransactionType.income, isDefault: true),
-      Category(id: 'inc_bonus', name: 'Bonus', iconName: 'bonus', colorValue: AppTheme.incomeColor.value, type: TransactionType.income, isDefault: true),
-      Category(id: 'inc_gift', name: 'Gift', iconName: 'gift', colorValue: AppTheme.incomeColor.value, type: TransactionType.income, isDefault: true),
-      Category(id: 'inc_other', name: 'Other income', iconName: 'other', colorValue: AppTheme.otherColor.value, type: TransactionType.income, isDefault: true),
+      Category(id: 'inc_salary', name: 'Salary', iconName: 'salary', colorValue: AppTheme.incomeFixed.value, type: TransactionType.income, isDefault: true),
+      Category(id: 'inc_bonus', name: 'Bonus', iconName: 'bonus', colorValue: AppTheme.incomeFixed.value, type: TransactionType.income, isDefault: true),
+      Category(id: 'inc_gift', name: 'Gift', iconName: 'gift', colorValue: AppTheme.incomeFixed.value, type: TransactionType.income, isDefault: true),
+      Category(id: 'inc_other', name: 'Other income', iconName: 'other', colorValue: AppTheme.otherFixed.value, type: TransactionType.income, isDefault: true),
     ];
   }
 }

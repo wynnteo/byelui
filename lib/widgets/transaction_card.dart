@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import 'glass_card.dart';
+import '../i18n/s.dart';
 
 class TransactionCard extends StatelessWidget {
   final Transaction transaction;
@@ -70,11 +70,11 @@ class TransactionCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      category?.name ?? 'Other',
+                      category?.displayName ?? S.t.other,
                       style: AppTheme.bodySmall,
                     ),
                     Text(' · ', style: AppTheme.bodySmall),
-                    Text(DateFormat('d MMM').format(transaction.date), style: AppTheme.bodySmall),
+                    Text(S.dayMonth(transaction.date), style: AppTheme.bodySmall),
                     if (paymentLabel != null) ...[
                       Text(' · ', style: AppTheme.bodySmall),
                       Icon(Icons.credit_card, size: 11, color: paymentColor ?? AppTheme.textTertiary),
@@ -83,7 +83,7 @@ class TransactionCard extends StatelessWidget {
                     ],
                     if (transaction.scope == TransactionScope.family) ...[
                       Text(' · ', style: AppTheme.bodySmall),
-                      Text('Family', style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
+                      Text(S.t.family, style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
                     ],
                     if (transaction.hasPhoto) ...[
                       const SizedBox(width: 4),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'theme/app_theme.dart';
@@ -12,6 +11,7 @@ import 'models/payment_card.dart';
 import 'services/data_service.dart';
 import 'services/security_service.dart';
 import 'services/biometric_service.dart';
+import 'services/theme_controller.dart';
 import 'screens/home_screen.dart';
 import 'screens/lock_screen.dart';
 
@@ -26,8 +26,6 @@ void main() async {
 
   await Hive.initFlutter();
 
-  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-
   Hive.registerAdapter(TransactionTypeAdapter());
   Hive.registerAdapter(CategoryAdapter());
   Hive.registerAdapter(TransactionScopeAdapter());
@@ -39,26 +37,70 @@ void main() async {
   Hive.registerAdapter(PaymentCardAdapter());
 
   await DataService().initialize();
+  ThemeController().load(); // sets AppTheme brightness before the first frame
 
   runApp(const ByeLuiApp());
 }
 
-class ByeLuiApp extends StatelessWidget {
+class ByeLuiApp extends StatefulWidget {
   const ByeLuiApp({super.key});
 
   @override
+  State<ByeLuiApp> createState() => _ByeLuiAppState();
+}
+
+class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
+  final _theme = ThemeController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _theme.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    _theme.removeListener(_onThemeChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// OS switched light/dark (only matters while the user is on "System").
+  @override
+  void didChangePlatformBrightness() => _theme.onPlatformBrightnessChanged();
+
+  /// AppTheme colours are static getters read inside build(), and many widgets
+  /// are `const`, so a plain setState would leave them painted with the old
+  /// palette. Marking every element dirty makes the whole tree re-read
+  /// AppTheme while keeping navigation stack and widget state intact.
+  void _onThemeChanged() {
+    setState(() {});
+    void markDirty(Element el) {
+      el.markNeedsBuild();
+      el.visitChildren(markDirty);
+    }
+
+    (context as Element).visitChildren(markDirty);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final brightness = AppTheme.brightness;
+    final dark = brightness == Brightness.dark;
     return MaterialApp(
       title: 'ByeLui',
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: GoogleFonts.workSans().fontFamily,
-        scaffoldBackgroundColor: AppTheme.paper,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppTheme.stamp,
-          brightness: Brightness.light,
-          surface: AppTheme.paper,
+      theme: AppTheme.themeData(brightness),
+      // Our colours flip instantly (static getters), so don't let Material's
+      // theme tween run alongside them — it would look half-switched.
+      themeAnimationDuration: Duration.zero,
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: AppTheme.paper,
+          systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark,
         ),
+        child: child ?? const SizedBox.shrink(),
       ),
       debugShowCheckedModeBanner: false,
       home: const AppLockGate(),
@@ -94,7 +136,7 @@ class _AppLockGateState extends State<AppLockGate> {
   @override
   Widget build(BuildContext context) {
     if (_needsUnlock == null) {
-      return const Scaffold(backgroundColor: AppTheme.paper, body: SizedBox());
+      return Scaffold(backgroundColor: AppTheme.paper, body: SizedBox());
     }
     if (_needsUnlock == true) {
       return LockScreen(onUnlocked: () => setState(() => _needsUnlock = false));

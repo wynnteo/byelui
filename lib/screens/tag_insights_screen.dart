@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
 import 'all_transactions_screen.dart';
+import '../i18n/s.dart';
 
 enum _TagRange { month, year, all }
 
@@ -41,7 +42,7 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -50,10 +51,10 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text('Tag insights', style: AppTheme.headingMedium),
+                    Text(S.t.tagInsights, style: AppTheme.headingMedium),
                   ],
                 ),
               ),
@@ -73,9 +74,9 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
                   ),
                   child: Row(
                     children: [
-                      _rangeTab('This month', _TagRange.month),
-                      _rangeTab('This year', _TagRange.year),
-                      _rangeTab('All time', _TagRange.all),
+                      _rangeTab(S.t.thisMonth, _TagRange.month),
+                      _rangeTab(S.t.thisYear, _TagRange.year),
+                      _rangeTab(S.t.allTime, _TagRange.all),
                     ],
                   ),
                 ),
@@ -87,8 +88,7 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(
-                            'No tagged expenses yet.\nAdd tags on a transaction, or ByeLui will '
-                            'suggest one automatically from the description (e.g. Shopee, Bubble tea).',
+                            S.t.noTaggedExpenses,
                             textAlign: TextAlign.center,
                             style: AppTheme.bodyMedium,
                           ),
@@ -116,7 +116,7 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
                                     Expanded(child: Text(entry.key, style: AppTheme.bodyLarge)),
                                     Text('$base ${entry.value.toStringAsFixed(2)}', style: AppTheme.bodyLarge),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.chevron_right, size: 16, color: AppTheme.textTertiary),
+                                    Icon(Icons.chevron_right, size: 16, color: AppTheme.textTertiary),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -158,7 +158,7 @@ class _TagInsightsScreenState extends State<TagInsightsScreen> {
           child: Text(
             label,
             style: AppTheme.bodySmall.copyWith(
-              color: selected ? AppTheme.ink : AppTheme.textSecondary,
+              color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),

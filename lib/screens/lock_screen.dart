@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/security_service.dart';
 import '../services/biometric_service.dart';
 import '../theme/app_theme.dart';
+import '../i18n/s.dart';
 
 /// Shown at app cold-start when a PIN and/or biometric unlock has been set
 /// up. Tries biometric first if enabled, falls back to PIN entry if a PIN
@@ -26,6 +29,10 @@ class _LockScreenState extends State<LockScreen> {
   bool _hasPin = false;
   bool _biometricEnabled = false;
   String? _errorMessage;
+  Timer? _lockTimer;
+  DateTime? _lockedUntil;
+
+  bool get _isLockedOut => _lockedUntil != null;
 
   @override
   void initState() {
@@ -36,19 +43,51 @@ class _LockScreenState extends State<LockScreen> {
   Future<void> _init() async {
     final hasPin = await _securityService.hasPin();
     final biometricEnabled = await BiometricService.isBiometricEnabled();
+    final lock = await _securityService.lockRemaining();
     if (!mounted) return;
     setState(() {
       _hasPin = hasPin;
       _biometricEnabled = biometricEnabled;
       _loading = false;
     });
+    _startLockCountdown(lock);
     if (biometricEnabled) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _tryBiometric());
     }
   }
 
+  /// Shows "Too many attempts…" with a live countdown until the lockout ends.
+  void _startLockCountdown(Duration? remaining) {
+    _lockTimer?.cancel();
+    if (remaining == null) {
+      if (mounted) setState(() => _lockedUntil = null);
+      return;
+    }
+    final until = DateTime.now().add(remaining);
+    void tick() {
+      final left = until.difference(DateTime.now());
+      if (!mounted) return;
+      if (left <= Duration.zero) {
+        _lockTimer?.cancel();
+        setState(() {
+          _lockedUntil = null;
+          _errorMessage = null;
+        });
+      } else {
+        setState(() {
+          _lockedUntil = until;
+          _errorMessage = S.t.tooManyAttempts(formatLockDuration(left));
+        });
+      }
+    }
+
+    tick();
+    _lockTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+  }
+
   @override
   void dispose() {
+    _lockTimer?.cancel();
     _pinController.dispose();
     super.dispose();
   }
@@ -66,10 +105,10 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Future<void> _verifyPin() async {
-    if (_isVerifying) return;
+    if (_isVerifying || _isLockedOut) return;
     final input = _pinController.text;
     if (input.length < 4) {
-      setState(() => _errorMessage = 'PIN must be at least 4 digits');
+      setState(() => _errorMessage = S.t.pinMin4);
       return;
     }
     setState(() {
@@ -78,22 +117,25 @@ class _LockScreenState extends State<LockScreen> {
     });
 
     try {
-      final isValid = await _securityService.verifyPin(input);
+      final result = await _securityService.checkPin(input);
       if (!mounted) return;
-      if (isValid) {
+      if (result.ok) {
         widget.onUnlocked();
       } else {
         setState(() {
           _isVerifying = false;
           _pinController.clear();
-          _errorMessage = 'Incorrect PIN, try again';
+          _errorMessage = result.attemptsLeft > 0 && result.attemptsLeft <= 2
+              ? S.t.incorrectPinTriesLeft(result.attemptsLeft)
+              : S.t.incorrectPin;
         });
+        if (result.isLocked) _startLockCountdown(result.lockedFor);
       }
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isVerifying = false;
-        _errorMessage = 'Something went wrong, try again';
+        _errorMessage = S.t.somethingWentWrong;
       });
     }
   }
@@ -101,14 +143,14 @@ class _LockScreenState extends State<LockScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(backgroundColor: AppTheme.primaryCharcoal, body: SizedBox());
+      return Scaffold(backgroundColor: AppTheme.primaryCharcoal, body: SizedBox());
     }
 
     return PopScope(
       canPop: false,
       child: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+          decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
           child: SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -118,10 +160,10 @@ class _LockScreenState extends State<LockScreen> {
                   children: [
                     Icon(_hasPin ? Icons.lock_outline : Icons.fingerprint, size: 56, color: AppTheme.stampText),
                     const SizedBox(height: 24),
-                    Text('ByeLui is locked', style: AppTheme.headingSmall, textAlign: TextAlign.center),
+                    Text(S.t.appLocked, style: AppTheme.headingSmall, textAlign: TextAlign.center),
                     const SizedBox(height: 8),
                     Text(
-                      _hasPin ? 'Enter your PIN to continue' : 'Unlock with biometrics to continue',
+                      _hasPin ? S.t.enterPinToContinue : S.t.unlockBiometricToContinue,
                       style: AppTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -130,6 +172,7 @@ class _LockScreenState extends State<LockScreen> {
                     if (_hasPin) ...[
                       TextField(
                         controller: _pinController,
+                        enabled: !_isLockedOut,
                         autofocus: !_biometricEnabled,
                         obscureText: true,
                         keyboardType: TextInputType.number,
@@ -146,15 +189,15 @@ class _LockScreenState extends State<LockScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _isVerifying ? null : _verifyPin,
+                          onPressed: (_isVerifying || _isLockedOut) ? null : _verifyPin,
                           style: AppTheme.primaryButtonStyle,
                           child: _isVerifying
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.ink),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.onStamp),
                                 )
-                              : const Text('Unlock'),
+                              : Text(S.t.unlock),
                         ),
                       ),
                     ],
@@ -173,14 +216,14 @@ class _LockScreenState extends State<LockScreen> {
                             onPressed: _tryBiometric,
                             style: AppTheme.primaryButtonStyle,
                             icon: const Icon(Icons.fingerprint),
-                            label: const Text('Unlock with biometrics'),
+                            label: Text(S.t.unlockWithBiometrics),
                           ),
                         ),
                       ] else
                         TextButton.icon(
                           onPressed: _tryBiometric,
-                          icon: const Icon(Icons.fingerprint, color: AppTheme.inkFaded),
-                          label: Text('Use biometrics instead', style: AppTheme.bodyMedium),
+                          icon: Icon(Icons.fingerprint, color: AppTheme.inkFaded),
+                          label: Text(S.t.useBiometricsInstead, style: AppTheme.bodyMedium),
                         ),
                     ],
                   ],

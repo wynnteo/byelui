@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/data_service.dart';
 import '../services/security_service.dart';
 import '../services/biometric_service.dart';
+import '../services/theme_controller.dart';
+import '../i18n/language_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import 'recurring_screen.dart';
@@ -11,6 +13,7 @@ import 'payment_cards_screen.dart';
 import 'pin_setup_screen.dart';
 import 'export_screen.dart';
 import 'backup_screen.dart';
+import '../i18n/s.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -54,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!response.isSuccess) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.errorMessage ?? 'Could not verify biometrics')),
+            SnackBar(content: Text(response.errorMessage ?? S.t.couldNotVerifyBiometrics)),
           );
         }
         return;
@@ -69,7 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -77,23 +80,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text('Settings', style: AppTheme.headingMedium),
+                  Text(S.t.settings, style: AppTheme.headingMedium),
                 ],
               ),
               const SizedBox(height: 16),
 
-              Text('Base currency', style: AppTheme.bodySmall),
+              Text(S.t.appearance, style: AppTheme.bodySmall),
+              const SizedBox(height: 8),
+              const _ThemeModeSelector(),
+              const SizedBox(height: 20),
+
+              Text(S.t.language, style: AppTheme.bodySmall),
+              const SizedBox(height: 8),
+              const _LanguageSelector(),
+              const SizedBox(height: 20),
+
+              Text(S.t.baseCurrency, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               GlassCard(
                 child: Row(
                   children: [
-                    const Icon(Icons.attach_money, color: AppTheme.textSecondary),
+                    Icon(Icons.attach_money, color: AppTheme.textSecondary),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text('Used to total your income/expense in reports', style: AppTheme.bodyMedium),
+                      child: Text(S.t.baseCurrencyHint, style: AppTheme.bodyMedium),
                     ),
                     DropdownButton<String>(
                       value: _dataService.baseCurrency,
@@ -111,7 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 20),
 
-              Text('Security', style: AppTheme.bodySmall),
+              Text(S.t.security, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               if (_securityLoading)
                 const GlassCard(child: SizedBox(height: 24))
@@ -122,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         const Icon(Icons.fingerprint, color: AppTheme.accentAmber),
                         const SizedBox(width: 10),
-                        Expanded(child: Text('Biometric unlock', style: AppTheme.bodyLarge)),
+                        Expanded(child: Text(S.t.biometricUnlock, style: AppTheme.bodyLarge)),
                         Switch(
                           value: _biometricEnabled,
                           activeColor: AppTheme.primaryCoral,
@@ -135,11 +148,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   GlassCard(
                     child: Row(
                       children: [
-                        const Icon(Icons.fingerprint, color: AppTheme.textTertiary),
+                        Icon(Icons.fingerprint, color: AppTheme.textTertiary),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Biometric unlock not available on this device',
+                            S.t.biometricNotAvailableDevice,
                             style: AppTheme.bodySmall,
                           ),
                         ),
@@ -154,32 +167,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   child: Row(
                     children: [
-                      const Icon(Icons.lock_outline, color: AppTheme.stampText),
+                      Icon(Icons.lock_outline, color: AppTheme.stampText),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('PIN lock', style: AppTheme.bodyLarge),
-                            Text(_hasPin ? 'PIN set — tap to change or remove' : 'Not set up', style: AppTheme.bodySmall),
+                            Text(S.t.pinLock, style: AppTheme.bodyLarge),
+                            Text(_hasPin ? S.t.pinSetTapToChange : S.t.notSetUp, style: AppTheme.bodySmall),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                      Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                     ],
                   ),
                 ),
                 if (!_hasPin && !_biometricEnabled) ...[
                   const SizedBox(height: 6),
                   Text(
-                    'Set up a PIN and/or biometric unlock — either works on its own, or use both together.',
+                    S.t.securityHint,
                     style: AppTheme.caption,
                   ),
                 ],
               ],
 
               const SizedBox(height: 20),
-              Text('Data', style: AppTheme.bodySmall),
+              Text(S.t.data, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               GlassCard(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExportScreen())),
@@ -187,8 +200,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     const Icon(Icons.ios_share, color: AppTheme.accentAmber),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Export transactions (CSV/PDF)', style: AppTheme.bodyLarge)),
-                    const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    Expanded(child: Text(S.t.exportTransactionsMenu, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),
               ),
@@ -199,14 +212,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     const Icon(Icons.swap_horiz, color: Color(0xFF6366F1)),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Backup & restore (switching phones)', style: AppTheme.bodyLarge)),
-                    const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    Expanded(child: Text(S.t.backupRestoreMenu, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
-              Text('Manage', style: AppTheme.bodySmall),
+              Text(S.t.manage, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               GlassCard(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringScreen())),
@@ -214,8 +227,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     const Icon(Icons.repeat, color: AppTheme.accentAmber),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Recurring transactions', style: AppTheme.bodyLarge)),
-                    const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    Expanded(child: Text(S.t.recurringTransactions, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),
               ),
@@ -224,10 +237,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen())),
                 child: Row(
                   children: [
-                    const Icon(Icons.pie_chart_outline, color: AppTheme.successColor),
+                    Icon(Icons.pie_chart_outline, color: AppTheme.successColor),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Budgets', style: AppTheme.bodyLarge)),
-                    const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    Expanded(child: Text(S.t.budgets, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),
               ),
@@ -236,10 +249,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
                 child: Row(
                   children: [
-                    const Icon(Icons.category_outlined, color: AppTheme.stampText),
+                    Icon(Icons.category_outlined, color: AppTheme.stampText),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Categories', style: AppTheme.bodyLarge)),
-                    const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    Expanded(child: Text(S.t.categories, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),
               ),
@@ -250,22 +263,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     const Icon(Icons.credit_card_outlined, color: AppTheme.accentAmber),
                     const SizedBox(width: 10),
-                    Expanded(child: Text('Payment cards', style: AppTheme.bodyLarge)),
-                    const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    Expanded(child: Text(S.t.paymentCards, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              Text('About', style: AppTheme.bodySmall),
+              Text(S.t.about, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               GlassCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ByeLui', style: AppTheme.bodyLarge),
+                    Text(S.t.appName, style: AppTheme.bodyLarge),
                     const SizedBox(height: 4),
-                    Text('Version 1.0.0', style: AppTheme.bodySmall),
+                    Text(S.t.version('1.0.0'), style: AppTheme.bodySmall),
                   ],
                 ),
               ),
@@ -274,6 +287,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+/// Segmented control — same look as [ScopeToggle]. Used for Appearance and Language.
+class _Segmented<T> extends StatelessWidget {
+  final List<(T, String, IconData?)> options;
+  final T selected;
+  final ValueChanged<T> onChanged;
+
+  const _Segmented({required this.options, required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.glassBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.glassBorder),
+      ),
+      child: Row(
+        children: options.map((o) {
+          final isSelected = o.$1 == selected;
+          final fg = isSelected ? AppTheme.onStamp : AppTheme.textSecondary;
+          return Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onChanged(o.$1),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryCoral : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (o.$3 != null) ...[
+                      Icon(o.$3, size: 16, color: fg),
+                      const SizedBox(width: 6),
+                    ],
+                    Flexible(
+                      child: Text(
+                        o.$2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: fg,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+/// System / Light / Dark. Reads the mode straight from ThemeController; the
+/// app-wide rebuild that follows setMode() refreshes this too (no local state).
+class _ThemeModeSelector extends StatelessWidget {
+  const _ThemeModeSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ThemeController();
+    return _Segmented<AppThemeMode>(
+      options: [
+        (AppThemeMode.system, S.t.system, Icons.brightness_auto),
+        (AppThemeMode.light, S.t.themeLight, Icons.light_mode_outlined),
+        (AppThemeMode.dark, S.t.themeDark, Icons.dark_mode_outlined),
+      ],
+      selected: controller.mode,
+      onChanged: controller.setMode,
+    );
+  }
+}
+
+/// System / English / 简体中文. Language names are shown in their own language
+/// on purpose, so someone who can't read the current UI language can still find theirs.
+class _LanguageSelector extends StatelessWidget {
+  const _LanguageSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = LanguageController();
+    return _Segmented<AppLanguage>(
+      options: [
+        (AppLanguage.system, S.t.system, Icons.translate),
+        (AppLanguage.en, 'English', null),
+        (AppLanguage.zh, '简体中文', null),
+      ],
+      selected: controller.preference,
+      onChanged: controller.setPreference,
     );
   }
 }

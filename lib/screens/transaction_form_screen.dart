@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import '../models/recurring_transaction.dart';
@@ -12,6 +11,7 @@ import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
 import '../widgets/category_picker_dialog.dart';
 import 'payment_cards_screen.dart';
+import '../i18n/s.dart';
 
 class TransactionFormScreen extends StatefulWidget {
   final Transaction? existing;
@@ -134,17 +134,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           children: [
             ListTile(
               leading: Icon(category.icon, color: category.color),
-              title: Text(category.name, style: AppTheme.headingSmall),
+              title: Text(category.displayName, style: AppTheme.headingSmall),
             ),
             ListTile(
-              leading: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
-              title: const Text('Edit', style: AppTheme.bodyLarge),
+              leading: Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
+              title: Text(S.t.edit, style: AppTheme.bodyLarge),
               onTap: () => Navigator.pop(ctx, 'edit'),
             ),
             if (!category.isDefault)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: AppTheme.errorColor),
-                title: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+                leading: Icon(Icons.delete_outline, color: AppTheme.errorColor),
+                title: Text(S.t.delete, style: TextStyle(color: AppTheme.errorColor)),
                 onTap: () => Navigator.pop(ctx, 'delete'),
               ),
           ],
@@ -165,18 +165,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppTheme.primaryCharcoal,
-          title: Text('Delete "${category.name}"?', style: AppTheme.headingSmall),
+          title: Text(S.t.deleteNamedQ(category.displayName), style: AppTheme.headingSmall),
           content: Text(
             affectedCount > 0
-                ? '$affectedCount transaction(s) use this category and will show without a category icon.'
-                : 'This category has no transactions yet.',
+                ? S.t.categoryUsedByShort(affectedCount)
+                : S.t.categoryHasNoTransactions,
             style: AppTheme.bodyMedium,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+              child: Text(S.t.delete, style: TextStyle(color: AppTheme.errorColor)),
             ),
           ],
         ),
@@ -239,8 +239,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppTheme.textPrimary),
-              title: const Text('Take photo', style: AppTheme.bodyLarge),
+              leading: Icon(Icons.camera_alt, color: AppTheme.textPrimary),
+              title: Text(S.t.takePhoto, style: AppTheme.bodyLarge),
               onTap: () async {
                 Navigator.pop(ctx);
                 final path = await PhotoService.captureFromCamera();
@@ -248,8 +248,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppTheme.textPrimary),
-              title: const Text('Choose from gallery', style: AppTheme.bodyLarge),
+              leading: Icon(Icons.photo_library, color: AppTheme.textPrimary),
+              title: Text(S.t.chooseFromGallery, style: AppTheme.bodyLarge),
               onTap: () async {
                 Navigator.pop(ctx);
                 final path = await PhotoService.pickFromGallery();
@@ -258,8 +258,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             ),
             if (_photoPath != null)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: AppTheme.errorColor),
-                title: const Text('Remove photo', style: TextStyle(color: AppTheme.errorColor)),
+                leading: Icon(Icons.delete_outline, color: AppTheme.errorColor),
+                title: Text(S.t.removePhoto, style: TextStyle(color: AppTheme.errorColor)),
                 onTap: () {
                   Navigator.pop(ctx);
                   setState(() => _photoPath = null);
@@ -294,19 +294,19 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid amount')),
+        SnackBar(content: Text(S.t.enterValidAmount)),
       );
       return;
     }
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a description')),
+        SnackBar(content: Text(S.t.enterDescription)),
       );
       return;
     }
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a category')),
+        SnackBar(content: Text(S.t.selectCategory)),
       );
       return;
     }
@@ -323,6 +323,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           date: _date,
           description: _descriptionController.text.trim(),
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+          clearNote: _noteController.text.trim().isEmpty,
           photoPath: _photoPath,
           clearPhoto: _photoPath == null,
           tags: _tags,
@@ -367,13 +368,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.primaryCharcoal,
-        title: const Text('Delete transaction?', style: AppTheme.headingSmall),
-        content: Text('This can\'t be undone.', style: AppTheme.bodyMedium),
+        title: Text(S.t.deleteTransactionQ, style: AppTheme.headingSmall),
+        content: Text(S.t.cantBeUndone, style: AppTheme.bodyMedium),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+            child: Text(S.t.delete, style: TextStyle(color: AppTheme.errorColor)),
           ),
         ],
       ),
@@ -392,7 +393,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -401,19 +402,19 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.close, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Expanded(
                       child: Text(
-                        widget.existing != null ? 'Edit transaction' : 'Add transaction',
+                        widget.existing != null ? S.t.editTransaction : S.t.addTransaction,
                         style: AppTheme.headingMedium,
                         textAlign: TextAlign.center,
                       ),
                     ),
                     if (widget.existing != null)
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: AppTheme.errorColor),
+                        icon: Icon(Icons.delete_outline, color: AppTheme.errorColor),
                         onPressed: _delete,
                       )
                     else
@@ -437,8 +438,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         ),
                         child: Row(
                           children: [
-                            _typeTab('Expense', TransactionType.expense),
-                            _typeTab('Income', TransactionType.income),
+                            _typeTab(S.t.expense, TransactionType.expense),
+                            _typeTab(S.t.income, TransactionType.income),
                           ],
                         ),
                       ),
@@ -453,7 +454,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                 controller: _amountController,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 style: AppTheme.headingLarge,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   hintText: '0.00',
                                   hintStyle: AppTheme.headingLarge,
                                   border: InputBorder.none,
@@ -475,7 +476,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      Text('Category', style: AppTheme.bodySmall),
+                      Text(S.t.category, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -498,7 +499,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                   children: [
                                     Icon(c.icon, size: 16, color: c.color),
                                     const SizedBox(width: 6),
-                                    Text(c.name, style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary)),
+                                    Text(c.displayName, style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary)),
                                   ],
                                 ),
                               ),
@@ -518,7 +519,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                 children: [
                                   const Icon(Icons.add, size: 16, color: AppTheme.accentAmber),
                                   const SizedBox(width: 4),
-                                  Text('New', style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
+                                  Text(S.t.newItem, style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
                                 ],
                               ),
                             ),
@@ -526,10 +527,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('Long-press a category to edit or delete it', style: AppTheme.caption),
+                      Text(S.t.longPressCategoryHint, style: AppTheme.caption),
                       const SizedBox(height: 16),
 
-                      Text('Paid with', style: AppTheme.bodySmall),
+                      Text(S.t.paidWith, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -590,7 +591,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                 children: [
                                   const Icon(Icons.add, size: 16, color: AppTheme.accentAmber),
                                   const SizedBox(width: 4),
-                                  Text('New card', style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
+                                  Text(S.t.newCard, style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
                                 ],
                               ),
                             ),
@@ -599,7 +600,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      Text('Who is this for', style: AppTheme.bodySmall),
+                      Text(S.t.whoIsThisFor, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       ScopeToggle(
                         value: _scope,
@@ -612,9 +613,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         onTap: _pickDate,
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today, size: 18, color: AppTheme.textSecondary),
+                            Icon(Icons.calendar_today, size: 18, color: AppTheme.textSecondary),
                             const SizedBox(width: 10),
-                            Text(DateFormat('EEE, d MMM yyyy').format(_date), style: AppTheme.bodyLarge),
+                            Text(S.dateFull(_date), style: AppTheme.bodyLarge),
                           ],
                         ),
                       ),
@@ -628,7 +629,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               children: [
                                 const Icon(Icons.repeat, color: AppTheme.accentAmber),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text('Make this recurring', style: AppTheme.bodyLarge)),
+                                Expanded(child: Text(S.t.makeRecurring, style: AppTheme.bodyLarge)),
                                 Switch(
                                   value: _isRecurring,
                                   activeColor: AppTheme.primaryCoral,
@@ -638,7 +639,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             ),
                             if (_isRecurring) ...[
                               const SizedBox(height: 8),
-                              Text('Repeats', style: AppTheme.bodySmall),
+                              Text(S.t.repeats, style: AppTheme.bodySmall),
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
@@ -651,7 +652,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                     selectedColor: AppTheme.primaryCoral,
                                     backgroundColor: AppTheme.glassBackground,
                                     labelStyle: AppTheme.bodySmall.copyWith(
-                                      color: selected ? AppTheme.ink : AppTheme.textSecondary,
+                                      color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
                                     ),
                                   );
                                 }).toList(),
@@ -659,8 +660,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 widget.existing == null
-                                    ? 'This transaction is the first occurrence. Manage or pause it later in Settings → Recurring.'
-                                    : 'Creates a new recurring rule starting from this transaction\'s date. Manage it later in Settings → Recurring.',
+                                    ? S.t.firstOccurrenceNote
+                                    : S.t.newRuleNote,
                                 style: AppTheme.caption,
                               ),
                             ],
@@ -672,7 +673,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       TextField(
                         controller: _descriptionController,
                         style: AppTheme.bodyLarge,
-                        decoration: AppTheme.glassInputDecoration(hintText: 'Description, e.g. Lunch at XYZ'),
+                        decoration: AppTheme.glassInputDecoration(hintText: S.t.descriptionHint),
                       ),
                       const SizedBox(height: 12),
 
@@ -680,11 +681,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         controller: _noteController,
                         style: AppTheme.bodyLarge,
                         maxLines: 3,
-                        decoration: AppTheme.glassInputDecoration(hintText: 'Note (optional)'),
+                        decoration: AppTheme.glassInputDecoration(hintText: S.t.noteOptional),
                       ),
                       const SizedBox(height: 16),
 
-                      Text('Tags', style: AppTheme.bodySmall),
+                      Text(S.t.tags, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _tagController,
@@ -692,7 +693,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         textInputAction: TextInputAction.done,
                         onSubmitted: _addTag,
                         decoration: AppTheme.glassInputDecoration(
-                          hintText: 'Add a tag, e.g. Shopee, Bubble tea',
+                          hintText: S.t.addTagHint,
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.add, color: AppTheme.accentAmber),
                             onPressed: () => _addTag(_tagController.text),
@@ -716,7 +717,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               final tag = _matchingExistingTags[i];
                               return ListTile(
                                 dense: true,
-                                leading: const Icon(Icons.sell_outlined, size: 16, color: AppTheme.textSecondary),
+                                leading: Icon(Icons.sell_outlined, size: 16, color: AppTheme.textSecondary),
                                 title: Text(tag, style: AppTheme.bodyMedium),
                                 onTap: () => _addTag(tag),
                               );
@@ -733,7 +734,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             return Chip(
                               label: Text(tag, style: AppTheme.bodySmall.copyWith(color: AppTheme.ink)),
                               backgroundColor: AppTheme.primaryCoral.withOpacity(0.35),
-                              deleteIcon: const Icon(Icons.close, size: 14, color: AppTheme.ink),
+                              deleteIcon: Icon(Icons.close, size: 14, color: AppTheme.ink),
                               onDeleted: () => _removeTag(tag),
                               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               visualDensity: VisualDensity.compact,
@@ -743,7 +744,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ],
                       if (_suggestedTags.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        Text('Suggested', style: AppTheme.caption),
+                        Text(S.t.suggested, style: AppTheme.caption),
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
@@ -773,7 +774,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ],
                       const SizedBox(height: 16),
 
-                      Text('Photo', style: AppTheme.bodySmall),
+                      Text(S.t.photo, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       GlassCard(
                         onTap: _showPhotoOptions,
@@ -790,9 +791,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.add_a_photo, color: AppTheme.textSecondary),
+                                  Icon(Icons.add_a_photo, color: AppTheme.textSecondary),
                                   const SizedBox(width: 8),
-                                  Text('Attach receipt photo', style: AppTheme.bodyMedium),
+                                  Text(S.t.attachReceiptPhoto, style: AppTheme.bodyMedium),
                                 ],
                               ),
                       ),
@@ -814,12 +815,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       style: AppTheme.primaryButtonStyle,
                       onPressed: _saving ? null : _save,
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.ink),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.onStamp),
                             )
-                          : const Text('Save transaction'),
+                          : Text(S.t.saveTransaction),
                     ),
                   ),
                 ),
@@ -847,7 +848,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           child: Text(
             label,
             style: AppTheme.bodyLarge.copyWith(
-              color: selected ? AppTheme.ink : AppTheme.textSecondary,
+              color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),

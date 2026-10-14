@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
 import '../services/data_service.dart';
@@ -8,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
 import 'tag_insights_screen.dart';
+import '../i18n/s.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -46,10 +46,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text('Analytics', style: AppTheme.headingMedium),
+                    Text(S.t.analytics, style: AppTheme.headingMedium),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -122,7 +122,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -130,10 +130,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text('Analytics', style: AppTheme.headingMedium),
+                  Text(S.t.analytics, style: AppTheme.headingMedium),
                 ],
               ),
               const SizedBox(height: 8),
@@ -150,8 +150,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
                 child: Row(
                   children: [
-                    _rangeTab('This month', _RangeView.month),
-                    _rangeTab('This year', _RangeView.year),
+                    _rangeTab(S.t.thisMonth, _RangeView.month),
+                    _rangeTab(S.t.thisYear, _RangeView.year),
                   ],
                 ),
               ),
@@ -167,7 +167,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${now.year} income', style: AppTheme.bodySmall),
+                              Text(S.t.yearIncome(now.year), style: AppTheme.bodySmall),
                               Text('$base ${(yearTotals['income'] ?? 0).toStringAsFixed(2)}',
                                   style: AppTheme.headingSmall.copyWith(color: AppTheme.successColor)),
                             ],
@@ -177,7 +177,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${now.year} expense', style: AppTheme.bodySmall),
+                              Text(S.t.yearExpense(now.year), style: AppTheme.bodySmall),
                               Text('$base ${(yearTotals['expense'] ?? 0).toStringAsFixed(2)}',
                                   style: AppTheme.headingSmall.copyWith(color: AppTheme.stampText)),
                             ],
@@ -195,15 +195,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chevron_left, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.chevron_left, color: AppTheme.textSecondary),
                       onPressed: () => _shiftMonth(-1),
                     ),
                     Text(
-                      isCurrentMonth ? 'This month · ${DateFormat('MMM yyyy').format(_selectedMonth)}' : DateFormat('MMMM yyyy').format(_selectedMonth),
+                      isCurrentMonth ? S.t.thisMonthDot(S.monthYearShort(_selectedMonth)) : S.monthYearLong(_selectedMonth),
                       style: AppTheme.headingSmall,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                       onPressed: isCurrentMonth ? null : () => _shiftMonth(1),
                     ),
                   ],
@@ -219,7 +219,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Income', style: AppTheme.bodySmall),
+                                Text(S.t.income, style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${(comparison['current']['income'] ?? 0).toStringAsFixed(2)}',
                                   style: AppTheme.headingSmall.copyWith(color: AppTheme.successColor),
@@ -232,7 +232,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Expense', style: AppTheme.bodySmall),
+                                Text(S.t.expense, style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${(comparison['current']['expense'] ?? 0).toStringAsFixed(2)}',
                                   style: AppTheme.headingSmall.copyWith(color: AppTheme.stampText),
@@ -248,7 +248,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'vs ${DateFormat('MMM yyyy').format(DateTime(comparison['previousYear'], comparison['previousMonth']))}',
+                            S.t.vsMonth(S.monthYearShort(DateTime(comparison['previousYear'], comparison['previousMonth']))),
                             style: AppTheme.caption,
                           ),
                           GestureDetector(
@@ -261,7 +261,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 border: Border.all(color: AppTheme.glassBorder),
                               ),
                               child: Text(
-                                _vsLastYear ? 'Compare: last year' : 'Compare: last month',
+                                _vsLastYear ? S.t.compareLastYear : S.t.compareLastMonth,
                                 style: AppTheme.caption.copyWith(color: AppTheme.accentAmber),
                               ),
                             ),
@@ -279,7 +279,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   children: [
                     const Icon(Icons.auto_awesome, size: 18, color: AppTheme.accentAmber),
                     const SizedBox(width: 8),
-                    Text('Insights', style: AppTheme.headingSmall),
+                    Text(S.t.insights, style: AppTheme.headingSmall),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -306,9 +306,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               if (highlights['topCategoryId'] != null || highlights['topMonth'] != null) ...[
                 Row(
                   children: [
-                    const Icon(Icons.emoji_events_outlined, size: 18, color: AppTheme.stampText),
+                    Icon(Icons.emoji_events_outlined, size: 18, color: AppTheme.stampText),
                     const SizedBox(width: 8),
-                    Text('$highlightYear highlights', style: AppTheme.headingSmall),
+                    Text(S.t.yearHighlights(highlightYear), style: AppTheme.headingSmall),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -322,10 +322,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Biggest category', style: AppTheme.caption),
+                              Text(S.t.biggestCategory, style: AppTheme.caption),
                               const SizedBox(height: 4),
                               Text(
-                                _dataService.getCategoryById(highlights['topCategoryId'])?.name ?? 'Other',
+                                _dataService.getCategoryById(highlights['topCategoryId'])?.displayName ?? S.t.other,
                                 style: AppTheme.bodyLarge,
                               ),
                               Text(
@@ -344,10 +344,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Highest spending month', style: AppTheme.caption),
+                              Text(S.t.highestSpendingMonth, style: AppTheme.caption),
                               const SizedBox(height: 4),
                               Text(
-                                DateFormat('MMMM').format(DateTime(highlightYear, highlights['topMonth'] as int)),
+                                S.monthLong(DateTime(highlightYear, highlights['topMonth'] as int)),
                                 style: AppTheme.bodyLarge,
                               ),
                               Text(
@@ -365,7 +365,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ],
 
               Text(
-                _range == _RangeView.month ? 'Income vs expense (6 months)' : 'Income vs expense (${now.year})',
+                _range == _RangeView.month ? S.t.incomeVsExpense6m : S.t.incomeVsExpenseYear(now.year),
                 style: AppTheme.headingSmall,
               ),
               const SizedBox(height: 12),
@@ -373,21 +373,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: SizedBox(
                   height: 220,
                   child: maxY == 0
-                      ? Center(child: Text('No data yet', style: AppTheme.bodyMedium))
+                      ? Center(child: Text(S.t.noDataYet, style: AppTheme.bodyMedium))
                       : BarChart(
                           BarChartData(
                             maxY: maxY * 1.2,
                             barTouchData: BarTouchData(
                               enabled: true,
                               touchTooltipData: BarTouchTooltipData(
-                                getTooltipColor: (group) => Colors.white,
-                                tooltipBorder: const BorderSide(color: AppTheme.paperLine),
+                                getTooltipColor: (group) => AppTheme.paperRaised,
+                                tooltipBorder: BorderSide(color: AppTheme.paperLine),
                                 tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                 getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                  final label = rodIndex == 0 ? 'Income' : 'Expense';
+                                  final label = rodIndex == 0 ? S.t.income : S.t.expense;
                                   return BarTooltipItem(
                                     '$label\n',
-                                    const TextStyle(color: AppTheme.ink, fontWeight: FontWeight.w700, fontSize: 11),
+                                    TextStyle(color: AppTheme.ink, fontWeight: FontWeight.w700, fontSize: 11),
                                     children: [
                                       TextSpan(
                                         text: '$base ${rod.toY.toStringAsFixed(2)}',
@@ -409,7 +409,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     final i = value.toInt();
                                     if (i < 0 || i >= trend.length) return const SizedBox();
                                     final m = trend[i];
-                                    final label = DateFormat('MMM').format(DateTime(m['year'], m['month']));
+                                    final label = S.monthShort(DateTime(m['year'], m['month']));
                                     return Padding(
                                       padding: const EdgeInsets.only(top: 6),
                                       child: Text(label, style: AppTheme.caption),
@@ -448,18 +448,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _legendDot(AppTheme.successColor, 'Income'),
+                  _legendDot(AppTheme.successColor, S.t.income),
                   const SizedBox(width: 16),
-                  _legendDot(AppTheme.warn, 'Expense'),
+                  _legendDot(AppTheme.warn, S.t.expense),
                 ],
               ),
               const SizedBox(height: 24),
 
               Row(
                 children: [
-                  const Icon(Icons.pie_chart_outline_rounded, size: 18, color: AppTheme.stampText),
+                  Icon(Icons.pie_chart_outline_rounded, size: 18, color: AppTheme.stampText),
                   const SizedBox(width: 8),
-                  Text('Spending by category', style: AppTheme.headingSmall),
+                  Text(S.t.spendingByCategory, style: AppTheme.headingSmall),
                 ],
               ),
               const SizedBox(height: 12),
@@ -468,7 +468,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ? Center(child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          _range == _RangeView.month ? 'No expenses recorded that month' : 'No expenses recorded this year',
+                          _range == _RangeView.month ? S.t.noExpensesMonth : S.t.noExpensesYear,
                           style: AppTheme.bodyMedium,
                         ),
                       ))
@@ -499,7 +499,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('Total', style: AppTheme.caption),
+                                    Text(S.t.total, style: AppTheme.caption),
                                     Text(
                                       '$base ${totalExpense.toStringAsFixed(0)}',
                                       style: AppTheme.headingSmall.copyWith(color: AppTheme.stampText),
@@ -525,7 +525,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Expanded(child: Text(category?.name ?? 'Other', style: AppTheme.bodyMedium)),
+                                  Expanded(child: Text(category?.displayName ?? S.t.other, style: AppTheme.bodyMedium)),
                                   Text('$base ${entry.value.toStringAsFixed(2)}', style: AppTheme.bodyMedium),
                                 ],
                               ),
@@ -538,9 +538,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
               Row(
                 children: [
-                  const Icon(Icons.savings_outlined, size: 18, color: AppTheme.successColor),
+                  Icon(Icons.savings_outlined, size: 18, color: AppTheme.successColor),
                   const SizedBox(width: 8),
-                  Text('Income by category', style: AppTheme.headingSmall),
+                  Text(S.t.incomeByCategory, style: AppTheme.headingSmall),
                 ],
               ),
               const SizedBox(height: 12),
@@ -549,7 +549,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ? Center(child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          _range == _RangeView.month ? 'No income recorded that month' : 'No income recorded this year',
+                          _range == _RangeView.month ? S.t.noIncomeMonth : S.t.noIncomeYear,
                           style: AppTheme.bodyMedium,
                         ),
                       ))
@@ -580,7 +580,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('Total', style: AppTheme.caption),
+                                    Text(S.t.total, style: AppTheme.caption),
                                     Text(
                                       '$base ${totalIncome.toStringAsFixed(0)}',
                                       style: AppTheme.headingSmall.copyWith(color: AppTheme.successColor),
@@ -606,7 +606,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Expanded(child: Text(category?.name ?? 'Other', style: AppTheme.bodyMedium)),
+                                  Expanded(child: Text(category?.displayName ?? S.t.other, style: AppTheme.bodyMedium)),
                                   Text('$base ${entry.value.toStringAsFixed(2)}', style: AppTheme.bodyMedium),
                                 ],
                               ),
@@ -634,7 +634,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Top tags', style: AppTheme.headingSmall),
+                        Text(S.t.topTags, style: AppTheme.headingSmall),
                         InkWell(
                           borderRadius: BorderRadius.circular(20),
                           onTap: () => Navigator.push(
@@ -650,8 +650,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('See all', style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText, fontWeight: FontWeight.w600)),
-                                const Icon(Icons.chevron_right, size: 16, color: AppTheme.stampText),
+                                Text(S.t.seeAll, style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText, fontWeight: FontWeight.w600)),
+                                Icon(Icons.chevron_right, size: 16, color: AppTheme.stampText),
                               ],
                             ),
                           ),
@@ -664,7 +664,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ? Padding(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               child: Text(
-                                'No tagged expenses in this period yet.',
+                                S.t.noTaggedExpensesPeriod,
                                 style: AppTheme.bodyMedium,
                               ),
                             )
@@ -720,7 +720,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Spent by payment method', style: AppTheme.headingSmall),
+                    Text(S.t.spentByPaymentMethod, style: AppTheme.headingSmall),
                     const SizedBox(height: 12),
                     GlassCard(
                       child: Column(
@@ -785,7 +785,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           child: Text(
             label,
             style: AppTheme.bodyMedium.copyWith(
-              color: selected ? AppTheme.ink : AppTheme.textSecondary,
+              color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
@@ -799,9 +799,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final isGood = higherIsBad ? !isUp : isUp;
     final color = pct == 0 ? AppTheme.textTertiary : (isGood ? AppTheme.successColor : AppTheme.errorColor);
     final arrow = pct == 0 ? '' : (isUp ? '▲ ' : '▼ ');
-    final period = _vsLastYear ? 'last year' : 'last month';
+    final period = _vsLastYear ? S.t.periodLastYear : S.t.periodLastMonth;
     return Text(
-      '$arrow${pct.abs().toStringAsFixed(0)}% vs $period',
+      S.t.percentVsPeriod('$arrow${pct.abs().toStringAsFixed(0)}', period),
       style: AppTheme.caption.copyWith(color: color),
     );
   }

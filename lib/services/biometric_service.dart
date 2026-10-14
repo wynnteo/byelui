@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../i18n/s.dart';
 
 enum BiometricAuthResult {
   success,
@@ -55,12 +56,12 @@ class BiometricService {
       if (!canUse) {
         return BiometricAuthResponse(
             result: BiometricAuthResult.notAvailable,
-            errorMessage: 'Biometric authentication is not available or not set up'
+            errorMessage: S.t.bioNotAvailableOrSetup
         );
       }
 
       final bool isAuthenticated = await _localAuth.authenticate(
-        localizedReason: 'Authenticate to access the app',
+        localizedReason: S.t.bioReason,
         options: const AuthenticationOptions(
           biometricOnly: false,
           stickyAuth: true,
@@ -73,7 +74,7 @@ class BiometricService {
         // Authentication returned false - this could be user cancellation
         return BiometricAuthResponse(
             result: BiometricAuthResult.userCanceled,
-            errorMessage: 'Authentication was canceled'
+            errorMessage: S.t.bioCanceled
         );
       }
     } on PlatformException catch (e) {
@@ -84,29 +85,29 @@ class BiometricService {
         case 'NotAvailable':
           return BiometricAuthResponse(
               result: BiometricAuthResult.notAvailable,
-              errorMessage: 'Biometric authentication is not available on this device'
+              errorMessage: S.t.bioNotAvailableDevice
           );
         case 'NotEnrolled':
           return BiometricAuthResponse(
               result: BiometricAuthResult.notEnrolled,
-              errorMessage: 'No biometric credentials are enrolled on this device'
+              errorMessage: S.t.bioNotEnrolled
           );
         case 'UserCancel':
         case 'UserFallback':
           return BiometricAuthResponse(
               result: BiometricAuthResult.userCanceled,
-              errorMessage: 'Authentication was canceled by user'
+              errorMessage: S.t.bioCanceledByUser
           );
         case 'AuthenticationFailed':
         case 'BiometricAuthenticationFailed':
           return BiometricAuthResponse(
               result: BiometricAuthResult.authenticationFailed,
-              errorMessage: 'Biometric authentication failed. Please try again.'
+              errorMessage: S.t.bioFailed
           );
         default:
           return BiometricAuthResponse(
               result: BiometricAuthResult.error,
-              errorMessage: e.message ?? 'An unknown error occurred'
+              errorMessage: e.message ?? S.t.bioUnknown
           );
       }
     } catch (e) {
@@ -142,36 +143,36 @@ class BiometricService {
       await prefs.setBool(_biometricEnabledKey, enabled);
     } catch (e) {
       print('Set biometric enabled error: $e');
-      throw Exception('Failed to save biometric setting');
+      throw Exception(S.t.bioSaveFailed);
     }
   }
 
   static String getBiometricDescription(List<BiometricType> biometrics) {
-    if (biometrics.isEmpty) return 'No biometric authentication available';
+    if (biometrics.isEmpty) return S.t.bioNone;
 
     final List<String> types = [];
 
     if (biometrics.contains(BiometricType.fingerprint)) {
-      types.add('Fingerprint');
+      types.add(S.t.fingerprint);
     }
     if (biometrics.contains(BiometricType.face)) {
-      types.add('Face ID');
+      types.add(S.t.faceId);
     }
     if (biometrics.contains(BiometricType.iris)) {
-      types.add('Iris');
+      types.add(S.t.iris);
     }
     if (biometrics.contains(BiometricType.strong)) {
-      types.add('Strong biometric');
+      types.add(S.t.strongBiometric);
     }
     if (biometrics.contains(BiometricType.weak)) {
-      types.add('Weak biometric');
+      types.add(S.t.weakBiometric);
     }
 
     if (types.isEmpty) {
-      return 'Biometric authentication available';
+      return S.t.bioAvailable;
     }
 
-    return '${types.join(', ')} available';
+    return S.t.typesAvailable(types.join(S.isChinese ? '、' : ', '));
   }
 
   static Future<bool> canUseBiometric() async {

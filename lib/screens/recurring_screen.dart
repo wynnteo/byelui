@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import '../models/recurring_transaction.dart';
@@ -7,6 +6,7 @@ import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
+import '../i18n/s.dart';
 
 class RecurringScreen extends StatefulWidget {
   const RecurringScreen({super.key});
@@ -38,7 +38,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -47,13 +47,13 @@ class _RecurringScreenState extends State<RecurringScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text('Recurring', style: AppTheme.headingMedium),
+                    Text(S.t.recurring, style: AppTheme.headingMedium),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.add, color: AppTheme.stampText),
+                      icon: Icon(Icons.add, color: AppTheme.stampText),
                       onPressed: () async {
                         await Navigator.push(
                           context,
@@ -71,7 +71,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(
-                            'No recurring transactions yet.\nUse + to add rent, subscriptions, or salary.',
+                            S.t.noRecurringYet,
                             textAlign: TextAlign.center,
                             style: AppTheme.bodyMedium,
                           ),
@@ -112,7 +112,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                                       Text(r.description, style: AppTheme.bodyLarge),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '${r.frequency.label} · Next ${DateFormat('d MMM').format(r.nextDueDate ?? r.startDate)}',
+                                        S.t.frequencyNext(r.frequency.label, S.dayMonth(r.nextDueDate ?? r.startDate)),
                                         style: AppTheme.bodySmall,
                                       ),
                                     ],
@@ -256,7 +256,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0 || _descriptionController.text.trim().isEmpty || _selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fill in amount, description, and category')),
+        SnackBar(content: Text(S.t.fillInRecurring)),
       );
       return;
     }
@@ -302,7 +302,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -311,14 +311,14 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.close, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text(widget.existing != null ? 'Edit recurring' : 'Add recurring', style: AppTheme.headingMedium),
+                    Text(widget.existing != null ? S.t.editRecurring : S.t.addRecurring, style: AppTheme.headingMedium),
                     const Spacer(),
                     if (widget.existing != null)
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: AppTheme.errorColor),
+                        icon: Icon(Icons.delete_outline, color: AppTheme.errorColor),
                         onPressed: () async {
                           await _dataService.deleteRecurringTransaction(widget.existing!.id);
                           if (mounted) Navigator.pop(context);
@@ -358,11 +358,11 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                       TextField(
                         controller: _descriptionController,
                         style: AppTheme.bodyLarge,
-                        decoration: AppTheme.glassInputDecoration(hintText: 'e.g. Rent, Netflix, Salary'),
+                        decoration: AppTheme.glassInputDecoration(hintText: S.t.recurringDescHint),
                       ),
                       const SizedBox(height: 16),
 
-                      Text('Category', style: AppTheme.bodySmall),
+                      Text(S.t.category, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -378,14 +378,14 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: selected ? c.color : AppTheme.glassBorder),
                               ),
-                              child: Text(c.name, style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary)),
+                              child: Text(c.displayName, style: AppTheme.bodySmall.copyWith(color: AppTheme.textPrimary)),
                             ),
                           );
                         }).toList(),
                       ),
                       const SizedBox(height: 16),
 
-                      Text('Paid with', style: AppTheme.bodySmall),
+                      Text(S.t.paidWith, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -435,7 +435,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      Text('Tags', style: AppTheme.bodySmall),
+                      Text(S.t.tags, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _tagController,
@@ -443,7 +443,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                         textInputAction: TextInputAction.done,
                         onSubmitted: _addTag,
                         decoration: AppTheme.glassInputDecoration(
-                          hintText: 'Add a tag, e.g. Netflix, Rent',
+                          hintText: S.t.recurringTagHint,
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.add, color: AppTheme.accentAmber),
                             onPressed: () => _addTag(_tagController.text),
@@ -467,7 +467,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                               final tag = _matchingExistingTags[i];
                               return ListTile(
                                 dense: true,
-                                leading: const Icon(Icons.sell_outlined, size: 16, color: AppTheme.textSecondary),
+                                leading: Icon(Icons.sell_outlined, size: 16, color: AppTheme.textSecondary),
                                 title: Text(tag, style: AppTheme.bodyMedium),
                                 onTap: () => _addTag(tag),
                               );
@@ -484,7 +484,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                             return Chip(
                               label: Text(tag, style: AppTheme.bodySmall.copyWith(color: AppTheme.ink)),
                               backgroundColor: AppTheme.primaryCoral.withOpacity(0.35),
-                              deleteIcon: const Icon(Icons.close, size: 14, color: AppTheme.ink),
+                              deleteIcon: Icon(Icons.close, size: 14, color: AppTheme.ink),
                               onDeleted: () => _removeTag(tag),
                               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               visualDensity: VisualDensity.compact,
@@ -494,7 +494,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                       ],
                       if (_suggestedTags.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        Text('Suggested', style: AppTheme.caption),
+                        Text(S.t.suggested, style: AppTheme.caption),
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
@@ -524,7 +524,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                       ],
                       const SizedBox(height: 16),
 
-                      Text('Frequency', style: AppTheme.bodySmall),
+                      Text(S.t.frequency, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -537,14 +537,14 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                             selectedColor: AppTheme.primaryCoral,
                             backgroundColor: AppTheme.glassBackground,
                             labelStyle: AppTheme.bodySmall.copyWith(
-                              color: selected ? AppTheme.ink : AppTheme.textSecondary,
+                              color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
                             ),
                           );
                         }).toList(),
                       ),
                       const SizedBox(height: 16),
 
-                      Text('Who is this for', style: AppTheme.bodySmall),
+                      Text(S.t.whoIsThisFor, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       ScopeToggle(
                         value: _scope,
@@ -565,7 +565,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
                     child: ElevatedButton(
                       style: AppTheme.primaryButtonStyle,
                       onPressed: _save,
-                      child: const Text('Save'),
+                      child: Text(S.t.save),
                     ),
                   ),
                 ),

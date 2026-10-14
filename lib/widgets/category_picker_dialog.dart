@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/category.dart';
 import '../theme/app_theme.dart';
+import '../i18n/s.dart';
 
 const List<Color> kCategoryColorOptions = [
   Color(0xFFFF6B4A), // coral
@@ -30,7 +31,7 @@ Future<Category?> showCreateCategoryDialog(
   required TransactionType type,
   Category? existing,
 }) async {
-  final controller = TextEditingController(text: existing?.name ?? '');
+  final controller = TextEditingController(text: existing?.displayName ?? '');
   String selectedIcon = existing?.iconName ?? Category.selectableIconNames.first;
   Color selectedColor = existing != null ? Color(existing.colorValue) : kCategoryColorOptions.first;
 
@@ -39,7 +40,7 @@ Future<Category?> showCreateCategoryDialog(
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
         backgroundColor: AppTheme.primaryCharcoal,
-        title: Text(existing != null ? 'Edit category' : 'New category', style: AppTheme.headingSmall),
+        title: Text(existing != null ? S.t.editCategory : S.t.newCategory, style: AppTheme.headingSmall),
         content: SizedBox(
           width: double.maxFinite,
           child: SingleChildScrollView(
@@ -51,10 +52,10 @@ Future<Category?> showCreateCategoryDialog(
                   controller: controller,
                   autofocus: true,
                   style: AppTheme.bodyLarge,
-                  decoration: AppTheme.glassInputDecoration(hintText: 'Category name'),
+                  decoration: AppTheme.glassInputDecoration(hintText: S.t.categoryName),
                 ),
                 const SizedBox(height: 16),
-                Text('Icon', style: AppTheme.bodySmall),
+                Text(S.t.icon, style: AppTheme.bodySmall),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -79,7 +80,7 @@ Future<Category?> showCreateCategoryDialog(
                   }).toList(),
                 ),
                 const SizedBox(height: 16),
-                Text('Color', style: AppTheme.bodySmall),
+                Text(S.t.color, style: AppTheme.bodySmall),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -106,7 +107,7 @@ Future<Category?> showCreateCategoryDialog(
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(S.t.cancel)),
           TextButton(
             onPressed: () {
               final name = controller.text.trim();
@@ -114,7 +115,7 @@ Future<Category?> showCreateCategoryDialog(
               if (existing != null) {
                 Navigator.pop(
                   ctx,
-                  existing.copyWith(name: name, iconName: selectedIcon, colorValue: selectedColor.value),
+                  existing.copyWith(name: name == existing.displayName ? existing.name : name, iconName: selectedIcon, colorValue: selectedColor.value),
                 );
               } else {
                 Navigator.pop(
@@ -130,7 +131,7 @@ Future<Category?> showCreateCategoryDialog(
                 );
               }
             },
-            child: Text(existing != null ? 'Save' : 'Add'),
+            child: Text(existing != null ? S.t.save : S.t.add),
           ),
         ],
       ),

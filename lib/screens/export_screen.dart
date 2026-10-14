@@ -5,6 +5,7 @@ import '../services/export_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
+import '../i18n/s.dart';
 
 enum _ExportRange { thisMonth, thisYear, allTime, custom }
 enum _ExportFormat { csv, pdf, xlsx }
@@ -61,7 +62,7 @@ class _ExportScreenState extends State<ExportScreen> {
       final transactions = _dataService.getTransactions(scope: _scopeFilter, from: range.from, to: range.to);
       if (transactions.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No transactions in that range')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.noTransactionsInRange)));
         }
         return;
       }
@@ -77,10 +78,10 @@ class _ExportScreenState extends State<ExportScreen> {
           path = await ExportService.exportCsv(transactions);
           break;
       }
-      await ExportService.share(path, text: 'ByeLui transactions export');
+      await ExportService.share(path, text: S.t.exportShareText);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.exportFailed(e))));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -92,7 +93,7 @@ class _ExportScreenState extends State<ExportScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -100,28 +101,28 @@ class _ExportScreenState extends State<ExportScreen> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text('Export transactions', style: AppTheme.headingMedium),
+                  Text(S.t.exportTransactions, style: AppTheme.headingMedium),
                 ],
               ),
               const SizedBox(height: 16),
 
-              Text('Who', style: AppTheme.bodySmall),
+              Text(S.t.who, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               ScopeToggle(value: _scopeFilter, onChanged: (v) => setState(() => _scopeFilter = v)),
               const SizedBox(height: 20),
 
-              Text('Range', style: AppTheme.bodySmall),
+              Text(S.t.range, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _rangeChip('This month', _ExportRange.thisMonth),
-                  _rangeChip('This year', _ExportRange.thisYear),
-                  _rangeChip('All time', _ExportRange.allTime),
+                  _rangeChip(S.t.thisMonth, _ExportRange.thisMonth),
+                  _rangeChip(S.t.thisYear, _ExportRange.thisYear),
+                  _rangeChip(S.t.allTime, _ExportRange.allTime),
                   GestureDetector(
                     onTap: _pickCustomRange,
                     child: Container(
@@ -133,10 +134,10 @@ class _ExportScreenState extends State<ExportScreen> {
                       ),
                       child: Text(
                         _range == _ExportRange.custom && _customFrom != null
-                            ? 'Custom ✓'
-                            : 'Custom range',
+                            ? S.t.customChecked
+                            : S.t.customRange,
                         style: AppTheme.bodySmall.copyWith(
-                          color: _range == _ExportRange.custom ? AppTheme.ink : AppTheme.textSecondary,
+                          color: _range == _ExportRange.custom ? AppTheme.onStamp : AppTheme.textSecondary,
                         ),
                       ),
                     ),
@@ -147,9 +148,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
               GlassCard(
                 child: Text(
-                  'All formats share the same columns: Date, Category, Amount, '
-                  'Description, Paid By, Remarks, Tags, Scope. Amount is negative '
-                  'for expenses and positive for income.',
+                  S.t.exportColumnsNote,
                   style: AppTheme.bodyMedium,
                 ),
               ),
@@ -163,7 +162,7 @@ class _ExportScreenState extends State<ExportScreen> {
                     style: AppTheme.primaryButtonStyle,
                     onPressed: _exporting ? null : () => _export(_ExportFormat.xlsx),
                     icon: const Icon(Icons.grid_on_outlined),
-                    label: const Text('Export as Excel (.xlsx)'),
+                    label: Text(S.t.exportAsExcel),
                   ),
                 ),
               ),
@@ -174,12 +173,12 @@ class _ExportScreenState extends State<ExportScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.textPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: AppTheme.glassBorder),
+                    side: BorderSide(color: AppTheme.glassBorder),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: _exporting ? null : () => _export(_ExportFormat.csv),
                   icon: const Icon(Icons.table_chart_outlined),
-                  label: const Text('Export as CSV'),
+                  label: Text(S.t.exportAsCsv),
                 ),
               ),
               const SizedBox(height: 12),
@@ -189,12 +188,12 @@ class _ExportScreenState extends State<ExportScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.textPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: AppTheme.glassBorder),
+                    side: BorderSide(color: AppTheme.glassBorder),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: _exporting ? null : () => _export(_ExportFormat.pdf),
                   icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: const Text('Export as PDF'),
+                  label: Text(S.t.exportAsPdf),
                 ),
               ),
               if (_exporting) ...[
@@ -219,7 +218,7 @@ class _ExportScreenState extends State<ExportScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: selected ? AppTheme.primaryCoral : AppTheme.glassBorder),
         ),
-        child: Text(label, style: AppTheme.bodySmall.copyWith(color: selected ? AppTheme.ink : AppTheme.textSecondary)),
+        child: Text(label, style: AppTheme.bodySmall.copyWith(color: selected ? AppTheme.onStamp : AppTheme.textSecondary)),
       ),
     );
   }

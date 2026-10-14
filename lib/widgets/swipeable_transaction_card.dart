@@ -5,6 +5,7 @@ import '../services/data_service.dart';
 import '../services/photo_service.dart';
 import '../theme/app_theme.dart';
 import 'transaction_card.dart';
+import '../i18n/s.dart';
 
 /// Wraps TransactionCard with swipe gestures:
 /// - swipe right → opens edit (card springs back, doesn't actually dismiss)
@@ -44,7 +45,7 @@ class SwipeableTransactionCard extends StatelessWidget {
           color: AppTheme.errorColor.withOpacity(0.25),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.delete, color: AppTheme.errorColor),
+        child: Icon(Icons.delete, color: AppTheme.errorColor),
       ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
@@ -55,13 +56,13 @@ class SwipeableTransactionCard extends StatelessWidget {
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: AppTheme.primaryCharcoal,
-            title: const Text('Delete transaction?', style: AppTheme.headingSmall),
-            content: Text("This can't be undone.", style: AppTheme.bodyMedium),
+            title: Text(S.t.deleteTransactionQ, style: AppTheme.headingSmall),
+            content: Text(S.t.cantBeUndone, style: AppTheme.bodyMedium),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+                child: Text(S.t.delete, style: TextStyle(color: AppTheme.errorColor)),
               ),
             ],
           ),

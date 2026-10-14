@@ -3,6 +3,7 @@ import '../models/payment_card.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
+import '../i18n/s.dart';
 
 const List<Color> _cardColorChoices = [
   AppTheme.primaryCoral,
@@ -60,7 +61,7 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
       debugPrint('Failed to save payment card: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not save card: $e')),
+          SnackBar(content: Text(S.t.couldNotSaveCard(e))),
         );
       }
     }
@@ -78,13 +79,13 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
               title: Text(card.name, style: AppTheme.headingSmall),
             ),
             ListTile(
-              leading: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
-              title: const Text('Edit', style: AppTheme.bodyLarge),
+              leading: Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
+              title: Text(S.t.edit, style: AppTheme.bodyLarge),
               onTap: () => Navigator.pop(ctx, 'edit'),
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: AppTheme.errorColor),
-              title: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+              leading: Icon(Icons.delete_outline, color: AppTheme.errorColor),
+              title: Text(S.t.delete, style: TextStyle(color: AppTheme.errorColor)),
               onTap: () => Navigator.pop(ctx, 'delete'),
             ),
           ],
@@ -99,16 +100,16 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppTheme.primaryCharcoal,
-          title: Text('Delete "${card.name}"?', style: AppTheme.headingSmall),
-          content: const Text(
-            'Past transactions tagged with this card will keep showing its name, but you won\'t be able to select it on new ones.',
+          title: Text(S.t.deleteNamedQ(card.name), style: AppTheme.headingSmall),
+          content: Text(
+            S.t.deleteCardBody,
             style: AppTheme.bodyMedium,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+              child: Text(S.t.delete, style: TextStyle(color: AppTheme.errorColor)),
             ),
           ],
         ),
@@ -134,7 +135,7 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -143,12 +144,12 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Expanded(child: Text('Payment cards', style: AppTheme.headingMedium)),
+                    Expanded(child: Text(S.t.paymentCards, style: AppTheme.headingMedium)),
                     IconButton(
-                      icon: const Icon(Icons.add, color: AppTheme.stampText),
+                      icon: Icon(Icons.add, color: AppTheme.stampText),
                       onPressed: () => _openEditor(),
                     ),
                   ],
@@ -157,8 +158,7 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'Add named cards like "Trust Card" or "Mari Card" to pick on transactions '
-                  'and see split out in Analytics, separate from Cash / e-wallet.',
+                  S.t.cardsHint,
                   style: AppTheme.caption,
                 ),
               ),
@@ -169,7 +169,7 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(24),
                           child: SelectableText(
-                            'Could not load payment cards:\n$loadError',
+                            S.t.couldNotLoadCards('$loadError'),
                             textAlign: TextAlign.center,
                             style: AppTheme.bodySmall,
                           ),
@@ -181,11 +181,11 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
                           padding: const EdgeInsets.all(24),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Icon(Icons.credit_card_outlined, size: 40, color: AppTheme.textTertiary),
                               SizedBox(height: 12),
                               Text(
-                                'No payment cards yet.\nTap + to add one.',
+                                S.t.noPaymentCards,
                                 textAlign: TextAlign.center,
                                 style: AppTheme.bodyMedium,
                               ),
@@ -215,7 +215,7 @@ class _PaymentCardsScreenState extends State<PaymentCardsScreen> {
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(child: Text(card.name, style: AppTheme.bodyLarge)),
-                                const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                                Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                               ],
                             ),
                           );
@@ -264,7 +264,7 @@ class _PaymentCardEditorSheetState extends State<_PaymentCardEditorSheet> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a card name')),
+        SnackBar(content: Text(S.t.enterCardName)),
       );
       return;
     }
@@ -288,18 +288,18 @@ class _PaymentCardEditorSheetState extends State<_PaymentCardEditorSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.existing != null ? 'Edit payment card' : 'Add payment card', style: AppTheme.headingSmall),
+            Text(widget.existing != null ? S.t.editPaymentCard : S.t.addPaymentCard, style: AppTheme.headingSmall),
             const SizedBox(height: 16),
 
             TextField(
               controller: _nameController,
               autofocus: widget.existing == null,
               style: AppTheme.bodyLarge,
-              decoration: AppTheme.glassInputDecoration(hintText: 'Card name, e.g. Trust Card'),
+              decoration: AppTheme.glassInputDecoration(hintText: S.t.cardNameHint),
             ),
             const SizedBox(height: 16),
 
-            Text('Icon', style: AppTheme.bodySmall),
+            Text(S.t.icon, style: AppTheme.bodySmall),
             const SizedBox(height: 8),
             Row(
               children: PaymentCard.selectableIconNames.map((name) {
@@ -326,7 +326,7 @@ class _PaymentCardEditorSheetState extends State<_PaymentCardEditorSheet> {
             ),
             const SizedBox(height: 16),
 
-            Text('Color', style: AppTheme.bodySmall),
+            Text(S.t.color, style: AppTheme.bodySmall),
             const SizedBox(height: 8),
             Row(
               children: _cardColorChoices.map((c) {
@@ -360,7 +360,7 @@ class _PaymentCardEditorSheetState extends State<_PaymentCardEditorSheet> {
                 child: ElevatedButton(
                   style: AppTheme.primaryButtonStyle,
                   onPressed: _save,
-                  child: const Text('Save'),
+                  child: Text(S.t.save),
                 ),
               ),
             ),

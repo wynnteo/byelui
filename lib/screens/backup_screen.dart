@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
+import '../i18n/s.dart';
 
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
@@ -29,12 +30,12 @@ class _BackupScreenState extends State<BackupScreen> {
       if (!await exportsDir.exists()) await exportsDir.create(recursive: true);
       final file = File('${exportsDir.path}/byelui_backup_${DateTime.now().millisecondsSinceEpoch}.json');
       await file.writeAsString(jsonString);
-      await Share.shareXFiles([XFile(file.path)], subject: 'ByeLui backup');
+      await Share.shareXFiles([XFile(file.path)], subject: S.t.backupShareSubject);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backup created and shared')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.backupCreated)));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.exportFailed(e))));
     } finally {
       if (mounted) setState(() => _working = false);
     }
@@ -45,17 +46,16 @@ class _BackupScreenState extends State<BackupScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.primaryCharcoal,
-        title: const Text('Import backup?', style: AppTheme.headingSmall),
+        title: Text(S.t.importBackupQ, style: AppTheme.headingSmall),
         content: Text(
-          'This replaces ALL current transactions, categories, recurring '
-          "rules, and budgets with what's in the backup file. This can't be undone.",
+          S.t.importBackupBody,
           style: AppTheme.bodyMedium,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Import', style: TextStyle(color: AppTheme.errorColor)),
+            child: Text(S.t.importAction, style: TextStyle(color: AppTheme.errorColor)),
           ),
         ],
       ),
@@ -73,18 +73,18 @@ class _BackupScreenState extends State<BackupScreen> {
 
       if (!_dataService.isValidBackup(data)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("That doesn't look like a ByeLui backup file")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.notBackupFile)));
         }
         return;
       }
 
       await _dataService.importAllData(data);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backup imported')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.backupImported)));
         setState(() {});
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.importFailed(e))));
     } finally {
       if (mounted) setState(() => _working = false);
     }
@@ -95,7 +95,7 @@ class _BackupScreenState extends State<BackupScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -103,22 +103,16 @@ class _BackupScreenState extends State<BackupScreen> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text('Backup & restore', style: AppTheme.headingMedium),
+                  Text(S.t.backupRestore, style: AppTheme.headingMedium),
                 ],
               ),
               const SizedBox(height: 16),
               GlassCard(
                 child: Text(
-                  'Use this when switching phones. Backup creates a single '
-                  'file with all your transactions, categories, recurring '
-                  'rules, and budgets — share it to yourself (email, Drive, '
-                  "AirDrop, etc), then open it from the new phone's Import.\n\n"
-                  "Note: receipt photos aren't included in the backup file "
-                  'itself, only the transaction data — photos stay on the '
-                  'original device.',
+                  S.t.backupInfo,
                   style: AppTheme.bodyMedium,
                 ),
               ),
@@ -131,7 +125,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     style: AppTheme.primaryButtonStyle,
                     onPressed: _working ? null : _export,
                     icon: const Icon(Icons.upload_file),
-                    label: const Text('Create & share backup'),
+                    label: Text(S.t.createShareBackup),
                   ),
                 ),
               ),
@@ -142,12 +136,12 @@ class _BackupScreenState extends State<BackupScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.errorColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: AppTheme.errorColor),
+                    side: BorderSide(color: AppTheme.errorColor),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: _working ? null : _import,
                   icon: const Icon(Icons.download),
-                  label: const Text('Import backup (replaces all data)'),
+                  label: Text(S.t.importBackupReplaces),
                 ),
               ),
               if (_working) ...[

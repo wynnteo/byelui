@@ -7,6 +7,7 @@ import '../models/recurring_transaction.dart';
 import '../models/budget.dart';
 import '../models/payment_card.dart';
 import '../theme/app_theme.dart';
+import '../i18n/s.dart';
 
 class DataService {
   static final DataService _instance = DataService._internal();
@@ -111,6 +112,11 @@ class DataService {
   String get baseCurrency => _settingsBoxSafe.get('baseCurrency', defaultValue: 'SGD');
   set baseCurrency(String value) => _settingsBoxSafe.put('baseCurrency', value);
 
+  /// 'system' | 'light' | 'dark'. A per-device display preference, so it is
+  /// intentionally not included in exportAllData()/importAllData().
+  String? getThemeMode() => _settingsBoxSafe.get('themeMode');
+  void setThemeMode(String mode) => _settingsBoxSafe.put('themeMode', mode);
+
   String? getSelectedLanguage() => _settingsBoxSafe.get('language');
   void setSelectedLanguage(String code) => _settingsBoxSafe.put('language', code);
 
@@ -207,6 +213,7 @@ class DataService {
             (t.note ?? '').toLowerCase().contains(q) ||
             t.tags.any((x) => x.toLowerCase().contains(q)) ||
             (category?.name.toLowerCase().contains(q) ?? false) ||
+            (category?.displayName.toLowerCase().contains(q) ?? false) ||
             t.amount.toStringAsFixed(2).contains(q);
       }).toList();
     }
@@ -271,16 +278,34 @@ class DataService {
 
   // ---- Analytics helpers ----
 
-  /// Total income/expense for a given month, converted to base currency.
-  Map<String, double> monthlyTotals(int year, int month, {TransactionScope? scope}) {
-    final from = DateTime(year, month, 1);
-    final to = DateTime(year, month + 1, 0, 23, 59, 59);
-    final items = getTransactions(scope: scope, from: from, to: to);
+  // Aggregates below make ONE pass over the box with no intermediate lists
+  // and no sorting (getTransactions() copies + filters + sorts, which is what
+  // the lists need but the totals don't). Trend/breakdown helpers that used to
+  // call monthlyTotals() 6–12 times now scan once and bucket by month.
 
+  /// Unsorted single-pass range scan used by the aggregate helpers.
+  Iterable<Transaction> _scan({TransactionScope? scope, DateTime? from, DateTime? to}) {
+    return _transactionsBoxSafe.values.where((t) {
+      if (scope != null && t.scope != scope) return false;
+      if (from != null && t.date.isBefore(from)) return false;
+      if (to != null && t.date.isAfter(to)) return false;
+      return true;
+    });
+  }
+
+  /// Same maths as [convertToBase], but reads the base currency once instead
+  /// of once per transaction (it's a Hive lookup).
+  double Function(double amount, String currency) _baseConverter() {
+    final toRate = _staticExchangeRates[baseCurrency] ?? 1.0;
+    return (amount, currency) => amount / (_staticExchangeRates[currency] ?? 1.0) * toRate;
+  }
+
+  Map<String, double> _incomeExpenseTotals(DateTime from, DateTime to, TransactionScope? scope) {
+    final convert = _baseConverter();
     double income = 0;
     double expense = 0;
-    for (final t in items) {
-      final converted = convertToBase(t.amount, t.currency);
+    for (final t in _scan(scope: scope, from: from, to: to)) {
+      final converted = convert(t.amount, t.currency);
       if (t.isIncome) {
         income += converted;
       } else {
@@ -290,18 +315,55 @@ class DataService {
     return {'income': income, 'expense': expense};
   }
 
+  Map<String, double> _categoryTotals(DateTime from, DateTime to, TransactionScope? scope, TransactionType type) {
+    final convert = _baseConverter();
+    final breakdown = <String, double>{};
+    for (final t in _scan(scope: scope, from: from, to: to)) {
+      if (t.type != type) continue;
+      breakdown[t.categoryId] = (breakdown[t.categoryId] ?? 0) + convert(t.amount, t.currency);
+    }
+    return breakdown;
+  }
+
+  /// income/expense per calendar month in [from]..[to], in ONE pass.
+  /// Key = year * 12 + (month - 1); value = [income, expense].
+  Map<int, List<double>> _incomeExpenseByMonth(DateTime from, DateTime to, TransactionScope? scope) {
+    final convert = _baseConverter();
+    final buckets = <int, List<double>>{};
+    for (final t in _scan(scope: scope, from: from, to: to)) {
+      final bucket = buckets.putIfAbsent(t.date.year * 12 + (t.date.month - 1), () => [0.0, 0.0]);
+      final converted = convert(t.amount, t.currency);
+      if (t.isIncome) {
+        bucket[0] += converted;
+      } else {
+        bucket[1] += converted;
+      }
+    }
+    return buckets;
+  }
+
+  /// Total income/expense for a given month, converted to base currency.
+  Map<String, double> monthlyTotals(int year, int month, {TransactionScope? scope}) {
+    return _incomeExpenseTotals(DateTime(year, month, 1), DateTime(year, month + 1, 0, 23, 59, 59), scope);
+  }
+
   /// Last [months] months of income/expense totals, oldest first.
   List<Map<String, dynamic>> monthlyTrend(int months, {TransactionScope? scope}) {
     final now = DateTime.now();
+    final buckets = _incomeExpenseByMonth(
+      DateTime(now.year, now.month - (months - 1), 1),
+      DateTime(now.year, now.month + 1, 0, 23, 59, 59),
+      scope,
+    );
     final result = <Map<String, dynamic>>[];
     for (int i = months - 1; i >= 0; i--) {
       final date = DateTime(now.year, now.month - i, 1);
-      final totals = monthlyTotals(date.year, date.month, scope: scope);
+      final b = buckets[date.year * 12 + (date.month - 1)];
       result.add({
         'year': date.year,
         'month': date.month,
-        'income': totals['income'],
-        'expense': totals['expense'],
+        'income': b?[0] ?? 0.0,
+        'expense': b?[1] ?? 0.0,
       });
     }
     return result;
@@ -309,58 +371,26 @@ class DataService {
 
   /// Expense breakdown by category for a given month, converted to base currency.
   Map<String, double> categoryBreakdown(int year, int month, {TransactionScope? scope, TransactionType type = TransactionType.expense}) {
-    final from = DateTime(year, month, 1);
-    final to = DateTime(year, month + 1, 0, 23, 59, 59);
-    final items = getTransactions(scope: scope, from: from, to: to)
-        .where((t) => t.type == type);
-
-    final breakdown = <String, double>{};
-    for (final t in items) {
-      final converted = convertToBase(t.amount, t.currency);
-      breakdown[t.categoryId] = (breakdown[t.categoryId] ?? 0) + converted;
-    }
-    return breakdown;
+    return _categoryTotals(DateTime(year, month, 1), DateTime(year, month + 1, 0, 23, 59, 59), scope, type);
   }
 
   /// Expense breakdown by category for a whole year, converted to base currency.
   Map<String, double> yearlyCategoryBreakdown(int year, {TransactionScope? scope, TransactionType type = TransactionType.expense}) {
-    final from = DateTime(year, 1, 1);
-    final to = DateTime(year, 12, 31, 23, 59, 59);
-    final items = getTransactions(scope: scope, from: from, to: to).where((t) => t.type == type);
-
-    final breakdown = <String, double>{};
-    for (final t in items) {
-      final converted = convertToBase(t.amount, t.currency);
-      breakdown[t.categoryId] = (breakdown[t.categoryId] ?? 0) + converted;
-    }
-    return breakdown;
+    return _categoryTotals(DateTime(year, 1, 1), DateTime(year, 12, 31, 23, 59, 59), scope, type);
   }
 
   /// Income/expense totals for a whole year, converted to base currency.
   Map<String, double> yearlyTotals(int year, {TransactionScope? scope}) {
-    final from = DateTime(year, 1, 1);
-    final to = DateTime(year, 12, 31, 23, 59, 59);
-    final items = getTransactions(scope: scope, from: from, to: to);
-
-    double income = 0;
-    double expense = 0;
-    for (final t in items) {
-      final converted = convertToBase(t.amount, t.currency);
-      if (t.isIncome) {
-        income += converted;
-      } else {
-        expense += converted;
-      }
-    }
-    return {'income': income, 'expense': expense};
+    return _incomeExpenseTotals(DateTime(year, 1, 1), DateTime(year, 12, 31, 23, 59, 59), scope);
   }
 
-  /// Per-month totals for a given year, Jan through Dec.
+  /// Per-month totals for a given year, Jan through Dec (one pass, not 12).
   List<Map<String, dynamic>> yearlyMonthlyBreakdown(int year, {TransactionScope? scope}) {
+    final buckets = _incomeExpenseByMonth(DateTime(year, 1, 1), DateTime(year, 12, 31, 23, 59, 59), scope);
     return List.generate(12, (i) {
       final month = i + 1;
-      final totals = monthlyTotals(year, month, scope: scope);
-      return {'year': year, 'month': month, 'income': totals['income'], 'expense': totals['expense']};
+      final b = buckets[year * 12 + (month - 1)];
+      return {'year': year, 'month': month, 'income': b?[0] ?? 0.0, 'expense': b?[1] ?? 0.0};
     });
   }
 
@@ -681,8 +711,7 @@ class DataService {
     if (risingCategoryId != null && risingPct >= 0.2) {
       final cat = getCategoryById(risingCategoryId!);
       insights.add(
-        '${cat?.name ?? 'This category'} is up ${(risingPct * 100).toStringAsFixed(0)}% vs last month '
-        '($base ${risingLastAmount.toStringAsFixed(0)} → $base ${risingThisAmount.toStringAsFixed(0)}).',
+        S.t.insightRising(cat?.displayName ?? S.t.thisCategory, (risingPct * 100).toStringAsFixed(0), base, risingLastAmount.toStringAsFixed(0), risingThisAmount.toStringAsFixed(0)),
       );
     }
 
@@ -693,8 +722,7 @@ class DataService {
       final pct = (thisTotal - lastTotal) / lastTotal;
       if (pct.abs() >= 0.1) {
         insights.add(
-          'You\'ve spent ${(pct.abs() * 100).toStringAsFixed(0)}% ${pct >= 0 ? 'more' : 'less'} '
-          'overall this month than last month.',
+          S.t.insightOverall((pct.abs() * 100).toStringAsFixed(0), pct >= 0),
         );
       }
     }
@@ -710,8 +738,7 @@ class DataService {
       if (amount >= 50) {
         final cat = getCategoryById(biggest.categoryId);
         insights.add(
-          'Your biggest expense this month was $base ${amount.toStringAsFixed(0)} on '
-          '"${biggest.description}"${cat != null ? ' (${cat.name})' : ''}.',
+          S.t.insightBiggest(base, amount.toStringAsFixed(0), biggest.description, cat?.displayName),
         );
       }
     }
@@ -757,15 +784,15 @@ class DataService {
   String paymentMethodLabel(PaymentMethod method) {
     switch (method) {
       case PaymentMethod.cash:
-        return 'Cash';
+        return S.t.cash;
       case PaymentMethod.card:
-        return 'Card (unspecified)';
+        return S.t.cardUnspecified;
       case PaymentMethod.eWallet:
-        return 'E-wallet';
+        return S.t.eWallet;
       case PaymentMethod.bankTransfer:
-        return 'Bank transfer';
+        return S.t.bankTransfer;
       case PaymentMethod.other:
-        return 'Other';
+        return S.t.other;
     }
   }
 
@@ -792,7 +819,7 @@ class DataService {
         label = paymentMethodLabel(t.paymentMethod!);
         color = _paymentMethodColor(t.paymentMethod!);
       } else {
-        label = 'Not set';
+        label = S.t.notSet;
         color = AppTheme.otherColor;
       }
 
@@ -928,105 +955,157 @@ class DataService {
 
   /// Replaces ALL local data with the contents of a backup. Irreversible —
   /// callers should confirm with the user first.
+  ///
+  /// Two phases so a bad file can never leave the user with no data:
+  ///  1. Parse + validate the WHOLE backup into memory. Any problem throws a
+  ///     [FormatException] before a single box is touched.
+  ///  2. Snapshot the current boxes, swap in the new data, and if the write
+  ///     itself fails (disk full, etc.) restore the snapshot and rethrow.
   Future<void> importAllData(Map<String, dynamic> data) async {
-    await _transactionsBoxSafe.clear();
-    await _categoriesBoxSafe.clear();
-    await _recurringBoxSafe.clear();
-    await _budgetsBoxSafe.clear();
-    await _paymentCardsBoxSafe.clear();
+    // ---- Phase 1: parse (no writes) ----
+    final categories = <String, Category>{};
+    final transactions = <String, Transaction>{};
+    final paymentCards = <String, PaymentCard>{};
+    final recurring = <String, RecurringTransaction>{};
+    final budgets = <String, Budget>{};
+    String? newBaseCurrency;
+    Map<String, String>? newTagKeywords;
 
-    for (final raw in (data['categories'] as List? ?? [])) {
-      final c = Map<String, dynamic>.from(raw as Map);
-      final category = Category(
-        id: c['id'],
-        name: c['name'],
-        iconName: c['iconName'],
-        colorValue: c['colorValue'],
-        type: TransactionType.fromJson(c['type']),
-        isDefault: c['isDefault'] ?? false,
-      );
-      await _categoriesBoxSafe.put(category.id, category);
+    try {
+      for (final raw in (data['categories'] as List? ?? [])) {
+        final c = Map<String, dynamic>.from(raw as Map);
+        final category = Category(
+          id: c['id'],
+          name: c['name'],
+          iconName: c['iconName'],
+          colorValue: c['colorValue'],
+          type: TransactionType.fromJson(c['type']),
+          isDefault: c['isDefault'] ?? false,
+        );
+        categories[category.id] = category;
+      }
+
+      for (final raw in (data['transactions'] as List? ?? [])) {
+        final t = Map<String, dynamic>.from(raw as Map);
+        final txn = Transaction(
+          id: t['id'],
+          amount: (t['amount'] as num).toDouble(),
+          currency: t['currency'],
+          type: TransactionType.fromJson(t['type']),
+          scope: TransactionScope.fromJson(t['scope']),
+          categoryId: t['categoryId'],
+          date: DateTime.parse(t['date']),
+          description: t['description'],
+          note: t['note'],
+          photoPath: t['photoPath'],
+          paymentMethod: t['paymentMethod'] != null ? PaymentMethod.fromJson(t['paymentMethod']) : null,
+          createdAt: DateTime.parse(t['createdAt']),
+          updatedAt: DateTime.parse(t['updatedAt']),
+          tags: (t['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
+          paymentCardId: t['paymentCardId'],
+        );
+        transactions[txn.id] = txn;
+      }
+
+      for (final raw in (data['paymentCards'] as List? ?? [])) {
+        final c = Map<String, dynamic>.from(raw as Map);
+        final card = PaymentCard(
+          id: c['id'],
+          name: c['name'],
+          iconName: c['iconName'],
+          colorValue: c['colorValue'],
+          isActive: c['isActive'] ?? true,
+          createdAt: DateTime.parse(c['createdAt']),
+        );
+        paymentCards[card.id] = card;
+      }
+
+      for (final raw in (data['recurringTransactions'] as List? ?? [])) {
+        final r = Map<String, dynamic>.from(raw as Map);
+        final rec = RecurringTransaction(
+          id: r['id'],
+          amount: (r['amount'] as num).toDouble(),
+          currency: r['currency'],
+          type: TransactionType.fromJson(r['type']),
+          scope: TransactionScope.fromJson(r['scope']),
+          categoryId: r['categoryId'],
+          description: r['description'],
+          note: r['note'],
+          frequency: RecurrenceFrequency.values.firstWhere(
+            (f) => f.name == r['frequency'],
+            orElse: () => RecurrenceFrequency.monthly,
+          ),
+          startDate: DateTime.parse(r['startDate']),
+          nextDueDate: r['nextDueDate'] != null ? DateTime.parse(r['nextDueDate']) : null,
+          endDate: r['endDate'] != null ? DateTime.parse(r['endDate']) : null,
+          isActive: r['isActive'] ?? true,
+          paymentMethod: r['paymentMethod'] != null ? PaymentMethod.fromJson(r['paymentMethod']) : null,
+          tags: (r['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
+          paymentCardId: r['paymentCardId'],
+        );
+        recurring[rec.id] = rec;
+      }
+
+      for (final raw in (data['budgets'] as List? ?? [])) {
+        final b = Map<String, dynamic>.from(raw as Map);
+        final budget = Budget(
+          id: b['id'],
+          categoryId: b['categoryId'],
+          monthlyLimit: (b['monthlyLimit'] as num).toDouble(),
+          scope: TransactionScope.fromJson(b['scope'] ?? 'personal'),
+        );
+        budgets[budget.id] = budget;
+      }
+
+      final settings = Map<String, dynamic>.from(data['settings'] as Map? ?? {});
+      if (settings['baseCurrency'] is String) newBaseCurrency = settings['baseCurrency'] as String;
+      if (settings['tagKeywords'] is Map) {
+        newTagKeywords = Map<String, String>.from(
+          (settings['tagKeywords'] as Map).map((k, v) => MapEntry(k.toString(), v.toString())),
+        );
+      }
+    } catch (e) {
+      throw FormatException(S.t.backupDamaged(e));
     }
 
-    for (final raw in (data['transactions'] as List? ?? [])) {
-      final t = Map<String, dynamic>.from(raw as Map);
-      final txn = Transaction(
-        id: t['id'],
-        amount: (t['amount'] as num).toDouble(),
-        currency: t['currency'],
-        type: TransactionType.fromJson(t['type']),
-        scope: TransactionScope.fromJson(t['scope']),
-        categoryId: t['categoryId'],
-        date: DateTime.parse(t['date']),
-        description: t['description'],
-        note: t['note'],
-        photoPath: t['photoPath'],
-        paymentMethod: t['paymentMethod'] != null ? PaymentMethod.fromJson(t['paymentMethod']) : null,
-        createdAt: DateTime.parse(t['createdAt']),
-        updatedAt: DateTime.parse(t['updatedAt']),
-        tags: (t['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
-        paymentCardId: t['paymentCardId'],
-      );
-      await _transactionsBoxSafe.put(txn.id, txn);
-    }
+    // ---- Phase 2: snapshot, swap, roll back on failure ----
+    final oldTransactions = _transactionsBoxSafe.toMap();
+    final oldCategories = _categoriesBoxSafe.toMap();
+    final oldRecurring = _recurringBoxSafe.toMap();
+    final oldBudgets = _budgetsBoxSafe.toMap();
+    final oldCards = _paymentCardsBoxSafe.toMap();
+    final oldBaseCurrency = baseCurrency;
+    final oldTagKeywords = _settingsBoxSafe.get('tagKeywords');
 
-    for (final raw in (data['paymentCards'] as List? ?? [])) {
-      final c = Map<String, dynamic>.from(raw as Map);
-      final card = PaymentCard(
-        id: c['id'],
-        name: c['name'],
-        iconName: c['iconName'],
-        colorValue: c['colorValue'],
-        isActive: c['isActive'] ?? true,
-        createdAt: DateTime.parse(c['createdAt']),
-      );
-      await _paymentCardsBoxSafe.put(card.id, card);
-    }
+    try {
+      await _transactionsBoxSafe.clear();
+      await _categoriesBoxSafe.clear();
+      await _recurringBoxSafe.clear();
+      await _budgetsBoxSafe.clear();
+      await _paymentCardsBoxSafe.clear();
 
-    for (final raw in (data['recurringTransactions'] as List? ?? [])) {
-      final r = Map<String, dynamic>.from(raw as Map);
-      final rec = RecurringTransaction(
-        id: r['id'],
-        amount: (r['amount'] as num).toDouble(),
-        currency: r['currency'],
-        type: TransactionType.fromJson(r['type']),
-        scope: TransactionScope.fromJson(r['scope']),
-        categoryId: r['categoryId'],
-        description: r['description'],
-        note: r['note'],
-        frequency: RecurrenceFrequency.values.firstWhere(
-          (f) => f.name == r['frequency'],
-          orElse: () => RecurrenceFrequency.monthly,
-        ),
-        startDate: DateTime.parse(r['startDate']),
-        nextDueDate: r['nextDueDate'] != null ? DateTime.parse(r['nextDueDate']) : null,
-        endDate: r['endDate'] != null ? DateTime.parse(r['endDate']) : null,
-        isActive: r['isActive'] ?? true,
-        paymentMethod: r['paymentMethod'] != null ? PaymentMethod.fromJson(r['paymentMethod']) : null,
-        tags: (r['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
-        paymentCardId: r['paymentCardId'],
-      );
-      await _recurringBoxSafe.put(rec.id, rec);
-    }
+      await _categoriesBoxSafe.putAll(categories);
+      await _transactionsBoxSafe.putAll(transactions);
+      await _paymentCardsBoxSafe.putAll(paymentCards);
+      await _recurringBoxSafe.putAll(recurring);
+      await _budgetsBoxSafe.putAll(budgets);
 
-    for (final raw in (data['budgets'] as List? ?? [])) {
-      final b = Map<String, dynamic>.from(raw as Map);
-      final budget = Budget(
-        id: b['id'],
-        categoryId: b['categoryId'],
-        monthlyLimit: (b['monthlyLimit'] as num).toDouble(),
-        scope: TransactionScope.fromJson(b['scope'] ?? 'personal'),
-      );
-      await _budgetsBoxSafe.put(budget.id, budget);
-    }
-
-    final settings = Map<String, dynamic>.from(data['settings'] as Map? ?? {});
-    if (settings['baseCurrency'] != null) baseCurrency = settings['baseCurrency'];
-    if (settings['tagKeywords'] is Map) {
-      await _settingsBoxSafe.put(
-        'tagKeywords',
-        Map<String, String>.from((settings['tagKeywords'] as Map).map((k, v) => MapEntry(k.toString(), v.toString()))),
-      );
+      if (newBaseCurrency != null) baseCurrency = newBaseCurrency;
+      if (newTagKeywords != null) await _settingsBoxSafe.put('tagKeywords', newTagKeywords);
+    } catch (_) {
+      await _transactionsBoxSafe.clear();
+      await _categoriesBoxSafe.clear();
+      await _recurringBoxSafe.clear();
+      await _budgetsBoxSafe.clear();
+      await _paymentCardsBoxSafe.clear();
+      await _transactionsBoxSafe.putAll(oldTransactions);
+      await _categoriesBoxSafe.putAll(oldCategories);
+      await _recurringBoxSafe.putAll(oldRecurring);
+      await _budgetsBoxSafe.putAll(oldBudgets);
+      await _paymentCardsBoxSafe.putAll(oldCards);
+      baseCurrency = oldBaseCurrency;
+      if (oldTagKeywords != null) await _settingsBoxSafe.put('tagKeywords', oldTagKeywords);
+      rethrow;
     }
   }
 }

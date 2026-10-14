@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
+import '../i18n/s.dart';
 
 class BudgetsScreen extends StatefulWidget {
   const BudgetsScreen({super.key});
@@ -37,24 +37,24 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.primaryCharcoal,
-        title: const Text('Monthly budget', style: AppTheme.headingSmall),
+        title: Text(S.t.monthlyBudget, style: AppTheme.headingSmall),
         content: TextField(
           controller: controller,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: AppTheme.bodyLarge,
-          decoration: AppTheme.glassInputDecoration(hintText: '$base amount, e.g. 300'),
+          decoration: AppTheme.glassInputDecoration(hintText: S.t.budgetAmountHint(base)),
         ),
         actions: [
           if (currentLimit > 0)
             TextButton(
               onPressed: () => Navigator.pop(ctx, 0.0),
-              child: const Text('Remove', style: TextStyle(color: AppTheme.errorColor)),
+              child: Text(S.t.remove, style: TextStyle(color: AppTheme.errorColor)),
             ),
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(S.t.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, double.tryParse(controller.text.trim())),
-            child: const Text('Save'),
+            child: Text(S.t.save),
           ),
         ],
       ),
@@ -98,7 +98,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -107,10 +107,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text('Budgets', style: AppTheme.headingMedium),
+                    Text(S.t.budgets, style: AppTheme.headingMedium),
                   ],
                 ),
               ),
@@ -137,9 +137,9 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              s == TransactionScope.personal ? 'Personal' : 'Family',
+                              s == TransactionScope.personal ? S.t.personal : S.t.family,
                               style: AppTheme.bodyMedium.copyWith(
-                                color: selected ? AppTheme.ink : AppTheme.textSecondary,
+                                color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
                               ),
                             ),
                           ),
@@ -157,15 +157,15 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chevron_left, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.chevron_left, color: AppTheme.textSecondary),
                       onPressed: () => _shiftMonth(-1),
                     ),
                     Text(
-                      isCurrentMonth ? 'This month · ${DateFormat('MMM yyyy').format(_selectedMonth)}' : DateFormat('MMMM yyyy').format(_selectedMonth),
+                      isCurrentMonth ? S.t.thisMonthDot(S.monthYearShort(_selectedMonth)) : S.monthYearLong(_selectedMonth),
                       style: AppTheme.headingSmall,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                       onPressed: isCurrentMonth ? null : () => _shiftMonth(1),
                     ),
                   ],
@@ -192,7 +192,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                           const Icon(Icons.add_chart_outlined, color: AppTheme.accentAmber),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text('Set a monthly budget on a category below to see your totals here', style: AppTheme.bodyMedium),
+                            child: Text(S.t.setBudgetOnCategoryHint, style: AppTheme.bodyMedium),
                           ),
                         ],
                       ),
@@ -253,8 +253,8 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   const SizedBox(height: 8),
                                   _statusPill(
                                     over
-                                        ? 'Over budget by $base ${(totalSpentAll - totalBudget).toStringAsFixed(2)}'
-                                        : '$base ${(totalBudget - totalSpentAll).toStringAsFixed(2)} left',
+                                        ? S.t.overBudgetBy('$base ${(totalSpentAll - totalBudget).toStringAsFixed(2)}')
+                                        : S.t.amountLeft('$base ${(totalBudget - totalSpentAll).toStringAsFixed(2)}'),
                                     over ? AppTheme.errorColor : AppTheme.income,
                                   ),
                                 ],
@@ -263,7 +263,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Divider(height: 1, color: AppTheme.paperLine),
+                        Divider(height: 1, color: AppTheme.paperLine),
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -271,7 +271,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('BUDGETED SPEND', style: AppTheme.caption.copyWith(letterSpacing: 0.5)),
+                                  Text(S.t.budgetedSpend, style: AppTheme.caption.copyWith(letterSpacing: 0.5)),
                                   const SizedBox(height: 4),
                                   Text('$base ${budgetedSpend.toStringAsFixed(2)}', style: AppTheme.numeral(size: 16)),
                                 ],
@@ -281,7 +281,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('UNBUDGETED SPEND', style: AppTheme.caption.copyWith(letterSpacing: 0.5)),
+                                  Text(S.t.unbudgetedSpend, style: AppTheme.caption.copyWith(letterSpacing: 0.5)),
                                   const SizedBox(height: 4),
                                   Text('$base ${unbudgetedSpend.toStringAsFixed(2)}', style: AppTheme.numeral(size: 16)),
                                 ],
@@ -318,14 +318,14 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             children: [
                               Container(width: 8, height: 8, decoration: BoxDecoration(color: c.color, shape: BoxShape.circle)),
                               const SizedBox(width: 10),
-                              Expanded(child: Text(c.name, style: AppTheme.bodyLarge)),
+                              Expanded(child: Text(c.displayName, style: AppTheme.bodyLarge)),
                               if (limit > 0 && over)
                                 Text(
-                                  '$base ${(spent - limit).toStringAsFixed(2)} over',
+                                  S.t.amountOver('$base ${(spent - limit).toStringAsFixed(2)}'),
                                   style: AppTheme.bodyMedium.copyWith(color: AppTheme.errorColor, fontWeight: FontWeight.w600),
                                 )
                               else if (limit == 0)
-                                Text('Set budget', style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
+                                Text(S.t.setBudget, style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
                             ],
                           ),
                           if (limit > 0) ...[

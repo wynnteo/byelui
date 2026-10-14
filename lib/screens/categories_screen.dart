@@ -4,6 +4,7 @@ import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/category_picker_dialog.dart';
+import '../i18n/s.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -33,7 +34,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Future<void> _deleteCategory(Category category) async {
     if (category.isDefault) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Default categories can't be deleted")),
+        SnackBar(content: Text(S.t.defaultCategoriesCantDelete)),
       );
       return;
     }
@@ -43,19 +44,18 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.primaryCharcoal,
-        title: Text('Delete "${category.name}"?', style: AppTheme.headingSmall),
+        title: Text(S.t.deleteNamedQ(category.displayName), style: AppTheme.headingSmall),
         content: Text(
           affectedCount > 0
-              ? '$affectedCount transaction(s) use this category. They will keep their amount and date, '
-                  "but show without a category icon — they won't be deleted."
-              : 'This category has no transactions yet.',
+              ? S.t.categoryUsedByLong(affectedCount)
+              : S.t.categoryHasNoTransactions,
           style: AppTheme.bodyMedium,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+            child: Text(S.t.delete, style: TextStyle(color: AppTheme.errorColor)),
           ),
         ],
       ),
@@ -73,7 +73,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -82,13 +82,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text('Categories', style: AppTheme.headingMedium),
+                    Text(S.t.categories, style: AppTheme.headingMedium),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.add, color: AppTheme.stampText),
+                      icon: Icon(Icons.add, color: AppTheme.stampText),
                       onPressed: _addCategoryDialog,
                     ),
                   ],
@@ -96,7 +96,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Tap a category to edit its name, icon, or color.', style: AppTheme.caption),
+                child: Text(S.t.categoriesHint, style: AppTheme.caption),
               ),
               const SizedBox(height: 10),
               Padding(
@@ -122,9 +122,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              t == TransactionType.expense ? 'Expense' : 'Income',
+                              t == TransactionType.expense ? S.t.expense : S.t.income,
                               style: AppTheme.bodyMedium.copyWith(
-                                color: selected ? AppTheme.ink : AppTheme.textSecondary,
+                                color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
                               ),
                             ),
                           ),
@@ -156,19 +156,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                             child: Icon(c.icon, color: c.color, size: 18),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(child: Text(c.name, style: AppTheme.bodyLarge)),
+                          Expanded(child: Text(c.displayName, style: AppTheme.bodyLarge)),
                           if (c.isDefault)
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
-                              child: Text('Default', style: AppTheme.caption),
+                              child: Text(S.t.defaultLabel, style: AppTheme.caption),
                             ),
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: AppTheme.textTertiary, size: 20),
+                            icon: Icon(Icons.edit_outlined, color: AppTheme.textTertiary, size: 20),
                             onPressed: () => _editCategoryDialog(c),
                           ),
                           if (!c.isDefault)
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, color: AppTheme.errorColor, size: 20),
+                              icon: Icon(Icons.delete_outline, color: AppTheme.errorColor, size: 20),
                               onPressed: () => _deleteCategory(c),
                             ),
                         ],

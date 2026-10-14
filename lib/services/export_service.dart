@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import 'data_service.dart';
+import '../i18n/s.dart';
 
 class ExportService {
   static final _dataService = DataService();
@@ -33,7 +34,7 @@ class ExportService {
   static List<List<String>> _rows(List<Transaction> transactions) {
     final sorted = transactions.toList()..sort((a, b) => b.date.compareTo(a.date));
     final rows = <List<String>>[
-      ['Date', 'Type', 'Category', 'Amount', 'Description', 'Paid By', 'Remarks', 'Tags', 'Scope'],
+      [S.t.colDate, S.t.type, S.t.category, S.t.colAmount, S.t.colDescription, S.t.colPaidBy, S.t.colRemarks, S.t.tags, S.t.scope],
     ];
     double totalIncome = 0;
     double totalExpense = 0;
@@ -47,21 +48,21 @@ class ExportService {
       }
       rows.add([
         DateFormat('yyyy-MM-dd').format(t.date),
-        t.isExpense ? 'Expense' : 'Income',
-        category?.name ?? 'Other',
+        t.isExpense ? S.t.expense : S.t.income,
+        category?.displayName ?? S.t.other,
         signedAmount.toStringAsFixed(2),
         t.description,
         _paidByLabel(t),
         t.note ?? '',
         t.tags.join('; '),
-        t.scope == TransactionScope.personal ? 'Personal' : 'Family',
+        t.scope == TransactionScope.personal ? S.t.personal : S.t.family,
       ]);
     }
 
     rows.add(['', '', '', '', '', '', '', '', '']);
-    rows.add(['', '', '', totalIncome.toStringAsFixed(2), 'TOTAL INCOME', '', '', '', '']);
-    rows.add(['', '', '', (-totalExpense).toStringAsFixed(2), 'TOTAL EXPENSE', '', '', '', '']);
-    rows.add(['', '', '', (totalIncome - totalExpense).toStringAsFixed(2), 'NET', '', '', '', '']);
+    rows.add(['', '', '', totalIncome.toStringAsFixed(2), S.t.totalIncome, '', '', '', '']);
+    rows.add(['', '', '', (-totalExpense).toStringAsFixed(2), S.t.totalExpense, '', '', '', '']);
+    rows.add(['', '', '', (totalIncome - totalExpense).toStringAsFixed(2), S.t.net, '', '', '', '']);
     return rows;
   }
 
@@ -73,7 +74,7 @@ class ExportService {
     if (!await exportsDir.exists()) await exportsDir.create(recursive: true);
     final fileName = '${fileNamePrefix ?? 'byelui_transactions'}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
     final file = File('${exportsDir.path}/$fileName');
-    await file.writeAsString(csvString);
+    await file.writeAsString('\uFEFF$csvString'); // BOM so Excel opens UTF-8 (e.g. Chinese) correctly
     return file.path;
   }
 
@@ -84,19 +85,19 @@ class ExportService {
   static Future<String> exportXlsx(List<Transaction> transactions, {String? fileNamePrefix}) async {
     final sorted = transactions.toList()..sort((a, b) => b.date.compareTo(a.date));
     final workbook = xlsx.Excel.createExcel();
-    const sheetName = 'Transactions';
+    final sheetName = S.t.sheetTransactions;
     final sheet = workbook[sheetName];
 
     sheet.appendRow([
-      xlsx.TextCellValue('Date'),
-      xlsx.TextCellValue('Type'),
-      xlsx.TextCellValue('Category'),
-      xlsx.TextCellValue('Amount'),
-      xlsx.TextCellValue('Description'),
-      xlsx.TextCellValue('Paid By'),
-      xlsx.TextCellValue('Remarks'),
-      xlsx.TextCellValue('Tags'),
-      xlsx.TextCellValue('Scope'),
+      xlsx.TextCellValue(S.t.colDate),
+      xlsx.TextCellValue(S.t.type),
+      xlsx.TextCellValue(S.t.category),
+      xlsx.TextCellValue(S.t.colAmount),
+      xlsx.TextCellValue(S.t.colDescription),
+      xlsx.TextCellValue(S.t.colPaidBy),
+      xlsx.TextCellValue(S.t.colRemarks),
+      xlsx.TextCellValue(S.t.tags),
+      xlsx.TextCellValue(S.t.scope),
     ]);
 
     double totalIncome = 0;
@@ -111,29 +112,29 @@ class ExportService {
       }
       sheet.appendRow([
         xlsx.TextCellValue(DateFormat('yyyy-MM-dd').format(t.date)),
-        xlsx.TextCellValue(t.isExpense ? 'Expense' : 'Income'),
-        xlsx.TextCellValue(category?.name ?? 'Other'),
+        xlsx.TextCellValue(t.isExpense ? S.t.expense : S.t.income),
+        xlsx.TextCellValue(category?.displayName ?? S.t.other),
         xlsx.DoubleCellValue(signedAmount),
         xlsx.TextCellValue(t.description),
         xlsx.TextCellValue(_paidByLabel(t)),
         xlsx.TextCellValue(t.note ?? ''),
         xlsx.TextCellValue(t.tags.join('; ')),
-        xlsx.TextCellValue(t.scope == TransactionScope.personal ? 'Personal' : 'Family'),
+        xlsx.TextCellValue(t.scope == TransactionScope.personal ? S.t.personal : S.t.family),
       ]);
     }
 
     sheet.appendRow([xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue('')]);
     sheet.appendRow([
       xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
-      xlsx.DoubleCellValue(totalIncome), xlsx.TextCellValue('TOTAL INCOME'),
+      xlsx.DoubleCellValue(totalIncome), xlsx.TextCellValue(S.t.totalIncome),
     ]);
     sheet.appendRow([
       xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
-      xlsx.DoubleCellValue(-totalExpense), xlsx.TextCellValue('TOTAL EXPENSE'),
+      xlsx.DoubleCellValue(-totalExpense), xlsx.TextCellValue(S.t.totalExpense),
     ]);
     sheet.appendRow([
       xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
-      xlsx.DoubleCellValue(totalIncome - totalExpense), xlsx.TextCellValue('NET'),
+      xlsx.DoubleCellValue(totalIncome - totalExpense), xlsx.TextCellValue(S.t.net),
     ]);
 
     // createExcel() ships with a default empty sheet (usually 'Sheet1') —
@@ -143,7 +144,7 @@ class ExportService {
     }
 
     final bytes = workbook.save();
-    if (bytes == null) throw Exception('Failed to generate Excel file');
+    if (bytes == null) throw Exception(S.t.excelFailed);
 
     final dir = await getApplicationDocumentsDirectory();
     final exportsDir = Directory('${dir.path}/exports');

@@ -12,6 +12,7 @@ import 'analytics_screen.dart';
 import 'settings_screen.dart';
 import 'all_transactions_screen.dart';
 import 'budgets_screen.dart';
+import '../i18n/s.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,14 +41,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: () async => _refresh(),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Text('ByeLui', style: AppTheme.headingLarge),
+                Text(S.t.appName, style: AppTheme.headingLarge),
                 const SizedBox(height: 16),
 
                 Row(
@@ -55,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     _QuickAction(
                       icon: Icons.bar_chart_rounded,
-                      label: 'Analytics',
+                      label: S.t.analytics,
                       onTap: () async {
                         await Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
                         _refresh();
@@ -63,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     _QuickAction(
                       icon: Icons.pie_chart_outline_rounded,
-                      label: 'Budget',
+                      label: S.t.budget,
                       onTap: () async {
                         await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen()));
                         _refresh();
@@ -71,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     _QuickAction(
                       icon: Icons.receipt_long_outlined,
-                      label: 'All',
+                      label: S.t.all,
                       onTap: () async {
                         await Navigator.push(context, MaterialPageRoute(builder: (_) => const AllTransactionsScreen()));
                         _refresh();
@@ -79,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     _QuickAction(
                       icon: Icons.settings_outlined,
-                      label: 'Settings',
+                      label: S.t.settings,
                       onTap: () async {
                         await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
                         _refresh();
@@ -99,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('This month', style: AppTheme.bodySmall),
+                      Text(S.t.thisMonth, style: AppTheme.bodySmall),
                       const SizedBox(height: 4),
                       Row(
                         children: [
@@ -107,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Income', style: AppTheme.bodySmall),
+                                Text(S.t.income, style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${income.toStringAsFixed(2)}',
                                   style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.successColor),
@@ -119,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Expense', style: AppTheme.bodySmall),
+                                Text(S.t.expense, style: AppTheme.bodySmall),
                                 Text(
                                   '$base ${expense.toStringAsFixed(2)}',
                                   style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.stampText),
@@ -153,9 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Icon(Icons.add_chart_outlined, color: AppTheme.accentAmber),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: Text('Set a monthly budget to see how much you can still spend', style: AppTheme.bodyMedium),
+                              child: Text(S.t.setBudgetPrompt, style: AppTheme.bodyMedium),
                             ),
-                            const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                            Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                           ],
                         ),
                       ),
@@ -178,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isOverBudget ? 'Over budget this month' : 'Left to spend this month',
+                            isOverBudget ? S.t.overBudgetThisMonth : S.t.leftToSpendThisMonth,
                             style: AppTheme.bodySmall,
                           ),
                           const SizedBox(height: 4),
@@ -199,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Text('$daysLeft day${daysLeft == 1 ? '' : 's'} left this month', style: AppTheme.caption),
+                          Text(S.t.daysLeftThisMonth(daysLeft), style: AppTheme.caption),
                         ],
                       ),
                     ),
@@ -219,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               const Icon(Icons.auto_awesome, size: 16, color: AppTheme.accentAmber),
                               const SizedBox(width: 6),
-                              Text('Insights', style: AppTheme.bodySmall),
+                              Text(S.t.insights, style: AppTheme.bodySmall),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -278,12 +279,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           Expanded(
                             child: Text(
                               isOver
-                                  ? '$overCount budget${overCount > 1 ? 's' : ''} over limit this month'
-                                  : '$nearCount budget${nearCount > 1 ? 's' : ''} close to limit',
+                                  ? S.t.budgetsOverLimit(overCount)
+                                  : S.t.budgetsNearLimit(nearCount),
                               style: AppTheme.bodyMedium.copyWith(color: isOver ? AppTheme.errorColor : AppTheme.accentAmber),
                             ),
                           ),
-                          const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                          Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                         ],
                       ),
                     ),
@@ -293,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Recent transactions', style: AppTheme.headingSmall),
+                    Text(S.t.recentTransactions, style: AppTheme.headingSmall),
                     InkWell(
                       borderRadius: BorderRadius.circular(20),
                       onTap: () async {
@@ -312,8 +313,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('See all', style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText, fontWeight: FontWeight.w600)),
-                            const Icon(Icons.chevron_right, size: 16, color: AppTheme.stampText),
+                            Text(S.t.seeAll, style: AppTheme.bodySmall.copyWith(color: AppTheme.stampText, fontWeight: FontWeight.w600)),
+                            Icon(Icons.chevron_right, size: 16, color: AppTheme.stampText),
                           ],
                         ),
                       ),
@@ -326,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Center(
-                      child: Text('No transactions yet this month', style: AppTheme.bodyMedium),
+                      child: Text(S.t.noTransactionsYetThisMonth, style: AppTheme.bodyMedium),
                     ),
                   )
                 else
@@ -367,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
             _refresh();
           },
-          child: const Icon(Icons.add, color: AppTheme.ink),
+          child: Icon(Icons.add, color: AppTheme.onStamp),
         ),
       ),
       bottomNavigationBar: SafeArea(

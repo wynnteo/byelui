@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
+import '../i18n/s.dart';
 
 class ScopeToggle extends StatelessWidget {
   final TransactionScope? value; // null = "All"
@@ -17,9 +18,9 @@ class ScopeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = <_ScopeOption>[
-      if (includeAllOption) const _ScopeOption(null, 'All'),
-      const _ScopeOption(TransactionScope.personal, 'Personal'),
-      const _ScopeOption(TransactionScope.family, 'Family'),
+      if (includeAllOption) _ScopeOption(null, S.t.all),
+      _ScopeOption(TransactionScope.personal, S.t.personal),
+      _ScopeOption(TransactionScope.family, S.t.family),
     ];
 
     return Container(
@@ -46,7 +47,7 @@ class ScopeToggle extends StatelessWidget {
                 child: Text(
                   option.label,
                   style: AppTheme.bodyMedium.copyWith(
-                    color: selected ? AppTheme.ink : AppTheme.textSecondary,
+                    color: selected ? AppTheme.onStamp : AppTheme.textSecondary,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
