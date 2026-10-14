@@ -20,6 +20,19 @@ class _RecurringScreenState extends State<RecurringScreen> {
 
   void _refresh() => setState(() {});
 
+  /// "Trust Card · Netflix, Rent" — the payment source and tags this rule applies.
+  String? _detailsLine(RecurringTransaction r) {
+    final parts = <String>[];
+    final card = r.paymentCardId != null ? _dataService.getPaymentCardById(r.paymentCardId!) : null;
+    if (card != null) {
+      parts.add(card.name);
+    } else if (r.paymentMethod != null) {
+      parts.add(_dataService.paymentMethodLabel(r.paymentMethod!));
+    }
+    if (r.tags.isNotEmpty) parts.add(r.tags.join(', '));
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
   Future<void> _toggleActive(RecurringTransaction r) async {
     await _dataService.updateRecurringTransaction(r.copyWith(isActive: !r.isActive));
     _refresh();
@@ -115,6 +128,15 @@ class _RecurringScreenState extends State<RecurringScreen> {
                                         S.t.frequencyNext(r.frequency.label, S.dayMonth(r.nextDueDate ?? r.startDate)),
                                         style: AppTheme.bodySmall,
                                       ),
+                                      if (_detailsLine(r) != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _detailsLine(r)!,
+                                          style: AppTheme.caption,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),

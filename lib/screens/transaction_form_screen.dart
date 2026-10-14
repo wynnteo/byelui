@@ -282,6 +282,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
       frequency: _recurFrequency,
       startDate: _date,
+      paymentMethod: _paymentMethod,
+      paymentCardId: _paymentCardId,
+      // No tags picked -> null, so generated entries still get keyword-suggested tags.
+      tags: _tags.isEmpty ? null : List<String>.from(_tags),
     );
     // This transaction IS the first occurrence — push the rule's next due
     // date one cycle ahead so generateDueRecurringTransactions() doesn't

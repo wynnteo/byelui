@@ -165,7 +165,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                               runSpacing: 8,
                               children: [
                                 ...cards.map((c) => _toggleChip(
-                                      label: c.displayName,
+                                      label: c.name,
                                       selected: _cardFilters.contains(c.id),
                                       onTap: () => setSheetState(() {
                                         if (!_cardFilters.remove(c.id)) _cardFilters.add(c.id);
@@ -512,7 +512,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                         ),
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
                         itemCount: transactions.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (ctx, i) {
@@ -534,6 +534,24 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.buttonGradient,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: FloatingActionButton(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TransactionFormScreen()),
+            );
+            _refresh();
+          },
+          child: Icon(Icons.add, color: AppTheme.onStamp),
         ),
       ),
     );

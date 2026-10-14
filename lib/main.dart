@@ -14,9 +14,13 @@ import 'services/biometric_service.dart';
 import 'services/theme_controller.dart';
 import 'screens/home_screen.dart';
 import 'screens/lock_screen.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting();
 
   try {
     await MobileAds.instance.initialize();
@@ -70,10 +74,6 @@ class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
   @override
   void didChangePlatformBrightness() => _theme.onPlatformBrightnessChanged();
 
-  /// AppTheme colours are static getters read inside build(), and many widgets
-  /// are `const`, so a plain setState would leave them painted with the old
-  /// palette. Marking every element dirty makes the whole tree re-read
-  /// AppTheme while keeping navigation stack and widget state intact.
   void _onThemeChanged() {
     setState(() {});
     void markDirty(Element el) {
@@ -91,9 +91,16 @@ class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: 'ByeLui',
       theme: AppTheme.themeData(brightness),
-      // Our colours flip instantly (static getters), so don't let Material's
-      // theme tween run alongside them — it would look half-switched.
       themeAnimationDuration: Duration.zero,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('zh'),
+      ],
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(
           statusBarColor: Colors.transparent,
@@ -108,9 +115,6 @@ class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
   }
 }
 
-/// Gates app entry behind the PIN/biometric lock, if one has been set up.
-/// Currently only checks at cold start — for lock-on-resume too, wrap this
-/// in a WidgetsBindingObserver that re-locks on AppLifecycleState.paused.
 class AppLockGate extends StatefulWidget {
   const AppLockGate({super.key});
 
