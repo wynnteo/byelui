@@ -399,4 +399,5 @@ abstract class AppStrings {
   String get scheduledRecurringExpense;
 
   String billReminderNotification(String type, int days);
+  String get moreOptions;
 }
