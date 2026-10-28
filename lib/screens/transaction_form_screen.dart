@@ -15,8 +15,9 @@ import '../i18n/s.dart';
 
 class TransactionFormScreen extends StatefulWidget {
   final Transaction? existing;
+  final TransactionScope? initialScope;
 
-  const TransactionFormScreen({super.key, this.existing});
+  const TransactionFormScreen({super.key, this.existing, this.initialScope});
 
   @override
   State<TransactionFormScreen> createState() => _TransactionFormScreenState();
@@ -49,6 +50,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   @override
   void initState() {
     super.initState();
+    _scope = widget.initialScope ?? TransactionScope.personal;
     final t = widget.existing;
     if (t != null) {
       _amountController.text = t.amount.toStringAsFixed(2);
