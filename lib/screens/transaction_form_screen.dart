@@ -271,26 +271,71 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
-  Future<void> _createRecurringRule(double amount) async {
+  Future<void> _saveRecurringRule(Transaction transaction) async {
+    // An inline rule belongs to its source transaction. Repeated edits must
+    // update that rule rather than silently creating additional schedules.
+    final ruleId = 'transaction:${transaction.id}';
+    final existingRule = _dataService.getRecurringTransactionById(ruleId);
+    final description = _descriptionController.text.trim();
+    final note = _noteController.text.trim();
+    final start = _date;
+
+    if (existingRule != null) {
+      await _dataService.updateRecurringTransaction(existingRule.copyWith(
+        amount: transaction.amount,
+        currency: transaction.currency,
+        type: transaction.type,
+        scope: transaction.scope,
+        categoryId: transaction.categoryId,
+        description: description,
+        note: note,
+        clearNote: note.isEmpty,
+        frequency: _recurFrequency,
+        startDate: start,
+        // Editing the original transaction starts future occurrences one
+        // cycle later. No duplicate of the current entry is generated.
+        nextDueDate: existingRule.computeNextDate(start),
+        paymentMethod: _paymentMethod,
+        clearPaymentMethod: _paymentMethod == null,
+        paymentCardId: _paymentCardId,
+        clearPaymentCard: _paymentCardId == null,
+        tags: List<String>.from(_tags),
+      ));
+      return;
+    }
+
+    // Migrate rules created from inline transactions by older releases where
+    // possible, without touching unrelated manually-created schedules.
+    final legacyMatches = _dataService.getRecurringTransactions().where((r) =>
+      r.startDate.isAtSameMomentAs(start) &&
+      r.scope == transaction.scope &&
+      r.type == transaction.type &&
+      r.categoryId == transaction.categoryId &&
+      r.description == description &&
+      r.amount == transaction.amount &&
+      r.currency == transaction.currency &&
+      r.frequency == _recurFrequency).toList();
+    if (legacyMatches.isNotEmpty) {
+      // A matching legacy rule already exists; do not create another.
+      return;
+    }
+
     final recurring = await _dataService.addRecurringTransaction(
-      amount: amount,
-      currency: _currency,
-      type: _type,
-      scope: _scope,
-      categoryId: _selectedCategory!.id,
-      description: _descriptionController.text.trim(),
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+      id: ruleId,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      type: transaction.type,
+      scope: transaction.scope,
+      categoryId: transaction.categoryId,
+      description: description,
+      note: note.isEmpty ? null : note,
       frequency: _recurFrequency,
-      startDate: _date,
+      startDate: start,
       paymentMethod: _paymentMethod,
       paymentCardId: _paymentCardId,
-      // No tags picked -> null, so generated entries still get keyword-suggested tags.
-      tags: _tags.isEmpty ? null : List<String>.from(_tags),
+      tags: List<String>.from(_tags),
     );
-    // This transaction IS the first occurrence — push the rule's next due
-    // date one cycle ahead so generateDueRecurringTransactions() doesn't
-    // immediately create a duplicate for the same date.
-    recurring.nextDueDate = recurring.computeNextDate(_date);
+    recurring.nextDueDate = recurring.computeNextDate(start);
     await _dataService.updateRecurringTransaction(recurring);
   }
 
@@ -339,10 +384,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         await _dataService.updateTransaction(updated);
 
         if (_isRecurring) {
-          await _createRecurringRule(amount);
+          await _saveRecurringRule(updated);
         }
       } else {
-        await _dataService.addTransaction(
+        final created = await _dataService.addTransaction(
           amount: amount,
           currency: _currency,
           type: _type,
@@ -358,7 +403,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         );
 
         if (_isRecurring) {
-          await _createRecurringRule(amount);
+          await _saveRecurringRule(created);
         }
       }
       if (mounted) Navigator.pop(context, true);
