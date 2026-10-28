@@ -643,7 +643,7 @@ class ZhStrings extends AppStrings {
   String get backupRestore => "备份与恢复";
 
   @override
-  String get backupInfo => "换手机时，可创建包含交易、分类、定期账单、预算及收据照片的 ZIP 备份文件。将 ZIP 文件发送给自己，然后在新手机导入。旧版 JSON 备份仍可导入，但不包含收据照片。";
+  String get backupInfo => "换手机时，可创建包含交易、分类、定期账单、预算及收据照片的 ZIP 备份文件。将 ZIP 文件发送给自己，然后在新手机导入。";
 
   @override
   String get createShareBackup => "创建并分享备份";
