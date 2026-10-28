@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/data_service.dart';
+import '../services/portable_backup_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../i18n/s.dart';
@@ -23,13 +23,7 @@ class _BackupScreenState extends State<BackupScreen> {
   Future<void> _export() async {
     setState(() => _working = true);
     try {
-      final data = _dataService.exportAllData();
-      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
-      final dir = await getApplicationDocumentsDirectory();
-      final exportsDir = Directory('${dir.path}/exports');
-      if (!await exportsDir.exists()) await exportsDir.create(recursive: true);
-      final file = File('${exportsDir.path}/byelui_backup_${DateTime.now().millisecondsSinceEpoch}.json');
-      await file.writeAsString(jsonString);
+      final file = await PortableBackupService(_dataService).createZip();
       await Share.shareXFiles([XFile(file.path)], subject: S.t.backupShareSubject);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.backupCreated)));
@@ -68,17 +62,27 @@ class _BackupScreenState extends State<BackupScreen> {
     setState(() => _working = true);
     try {
       final file = File(result.files.single.path!);
-      final jsonString = await file.readAsString();
-      final data = json.decode(jsonString) as Map<String, dynamic>;
-
-      if (!_dataService.isValidBackup(data)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.notBackupFile)));
+      if (file.path.toLowerCase().endsWith('.zip')) {
+        await PortableBackupService(_dataService).importZip(file);
+      } else {
+        // Legacy 1.0 JSON backup: photos were not included.
+        final jsonString = await file.readAsString();
+        final data = json.decode(jsonString) as Map<String, dynamic>;
+        if (!_dataService.isValidBackup(data)) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t.notBackupFile)));
+          return;
         }
-        return;
+        // Never carry stale absolute paths from the old phone.
+        for (final raw in data['transactions'] as List) {
+          final transaction = raw as Map<String, dynamic>;
+          final path = transaction['photoPath'] as String?;
+          if (path != null && !await File(path).exists()) {
+            transaction['photoPath'] = null;
+          }
+        }
+        await _dataService.importAllData(data);
       }
-
-      await _dataService.importAllData(data);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.backupImported)));
         setState(() {});

@@ -62,6 +62,7 @@ dependencies:
   pdf: any
   share_plus: any
   file_picker: any
+  archive: ^3.6.1  # ZIP backups with portable receipt images
 
   excel: ^4.0.6
 
