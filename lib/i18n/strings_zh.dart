@@ -643,7 +643,7 @@ class ZhStrings extends AppStrings {
   String get backupRestore => "备份与恢复";
 
   @override
-  String get backupInfo => "换手机时，可创建包含交易、分类、定期账单、预算及收据照片的 ZIP 备份文件。将 ZIP 文件发送给自己，然后在新手机导入。旧版 JSON 备份仍可导入，但不包含收据照片。";
+  String get backupInfo => "换手机时，可创建包含交易、分类、定期账单、预算及收据照片的 ZIP 备份文件。将 ZIP 文件发送给自己，然后在新手机导入。";
 
   @override
   String get createShareBackup => "创建并分享备份";
@@ -870,7 +870,7 @@ class ZhStrings extends AppStrings {
   String get scheduledExpensesOnly => "未来30天 · 仅显示计划支出";
 
   @override
-  String get upcomingExplainer => "这些是预计支付的款项，不代表已确认未付款。只有记录为交易后才会计入支出。";
+  String get upcomingExplainer => "即将到期的定期支出会在到期时自动记账。这是计划记录，并不代表款项已经支付。";
 
   @override
   String get noUpcomingRecurring => "暂无即将到期的定期支出。新增定期支出后即可在此查看。";

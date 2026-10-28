@@ -13,7 +13,6 @@ import 'settings_screen.dart';
 import 'all_transactions_screen.dart';
 import 'budgets_screen.dart';
 import 'upcoming_bills_screen.dart';
-import 'credit_card_bills_screen.dart';
 import '../i18n/s.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -148,8 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Only actionable reminders belong on Home. Full bill
-                // schedules remain in their own screens.
+                // Compact upcoming bills preview. Manage bill details in Settings.
                 Builder(builder: (context) {
                   final today = DateTime(now.year, now.month, now.day);
                   final horizon = today.add(const Duration(days: 7));
@@ -197,16 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (entries.isEmpty)
                             Text(S.t.noBillsDueSoon,
                                 style: AppTheme.bodySmall),
-                          ...entries.take(2).map((entry) => InkWell(
-                            onTap: () async {
-                              await Navigator.push(context, MaterialPageRoute(
-                                builder: (_) => entry.card
-                                    ? CreditCardBillsScreen(initialScope: _scopeFilter)
-                                    : UpcomingBillsScreen(initialScope: _scopeFilter),
-                              ));
-                              _refresh();
-                            },
-                            child: Padding(
+                          ...entries.take(2).map((entry) => Padding(
                               padding: const EdgeInsets.symmetric(vertical: 7),
                               child: Row(children: [
                                 Expanded(child: Column(
@@ -218,41 +207,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ],
                                 )),
                                 const SizedBox(width: 6),
-                                Text('${entry.date.day}/${entry.date.month}',
+                                Text(S.billingDate(entry.date),
                                     style: AppTheme.bodySmall),
-                                Icon(Icons.chevron_right,
-                                    color: AppTheme.textTertiary, size: 18),
                               ]),
                             ),
-                          )),
+                          ),
                           if (entries.length > 2)
                             Text(S.t.moreBillsDueSoon(entries.length - 2),
                                 style: AppTheme.caption),
-                          const SizedBox(height: 4),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 0,
-                            children: [
-                              TextButton(
-                                onPressed: () async {
-                                  await Navigator.push(context, MaterialPageRoute(
-                                    builder: (_) => UpcomingBillsScreen(initialScope: _scopeFilter),
-                                  ));
-                                  _refresh();
-                                },
-                                child: Text(S.t.recurringBills),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  await Navigator.push(context, MaterialPageRoute(
-                                    builder: (_) => CreditCardBillsScreen(initialScope: _scopeFilter),
-                                  ));
-                                  _refresh();
-                                },
-                                child: Text(S.t.creditCards),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),

@@ -643,7 +643,7 @@ class EnStrings extends AppStrings {
   String get backupRestore => "Backup & restore";
 
   @override
-  String get backupInfo => "Use this when switching phones. Create a ZIP backup with your transactions, categories, recurring bills, budgets and saved receipt photos. Share the ZIP with yourself, then import it on your new phone. Older JSON backups can also be imported, but they do not contain receipt photos.";
+  String get backupInfo => "Use this when switching phones. Create a ZIP backup with your transactions, categories, recurring bills, budgets and saved receipt photos. Share the ZIP with yourself, then import it on your new phone.";
 
   @override
   String get createShareBackup => "Create & share backup";
@@ -870,7 +870,7 @@ class EnStrings extends AppStrings {
   String get scheduledExpensesOnly => "Next 30 days · Scheduled expenses only";
 
   @override
-  String get upcomingExplainer => "These are expected payments, not confirmed unpaid bills. They are not added to expenses until recorded as transactions.";
+  String get upcomingExplainer => "Upcoming recurring expenses are automatically recorded when due. This is a scheduled entry, not confirmation that payment was made.";
 
   @override
   String get noUpcomingRecurring => "No upcoming recurring expenses. Add a recurring expense to see it here.";

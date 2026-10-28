@@ -99,7 +99,7 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
             GlassCard(child: Text(S.t.noCardStatements, style: AppTheme.bodyMedium)),
           ...items.map((s) {
             final date = s.dueDate;
-            final dueText = '${date.day}/${date.month}/${date.year}';
+            final dueText = S.billingDate(date);
             final status = s.isPaid ? S.t.paid : s.isOverdue ? S.t.overdue : S.t.unpaid;
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -296,7 +296,7 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
             ListTile(
               leading: const Icon(Icons.event),
               title: Text(S.t.paymentDueDate),
-              subtitle: Text('${_dueDate.day}/${_dueDate.month}/${_dueDate.year}'),
+              subtitle: Text(S.billingDate(_dueDate)),
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context, initialDate: _dueDate,

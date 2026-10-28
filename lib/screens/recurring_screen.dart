@@ -128,7 +128,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                                       Text(r.description, style: AppTheme.bodyLarge),
                                       const SizedBox(height: 2),
                                       Text(
-                                        S.t.frequencyNext(r.frequency.label, S.dayMonth(r.nextDueDate ?? r.startDate)),
+                                        S.t.frequencyNext(r.frequency.label, S.billingDate(r.nextDueDate ?? r.startDate)),
                                         style: AppTheme.bodySmall,
                                       ),
                                       if (_detailsLine(r) != null) ...[
