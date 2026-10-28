@@ -12,8 +12,6 @@ import 'analytics_screen.dart';
 import 'settings_screen.dart';
 import 'all_transactions_screen.dart';
 import 'budgets_screen.dart';
-import 'upcoming_bills_screen.dart';
-import 'credit_card_bills_screen.dart';
 import '../i18n/s.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -147,117 +145,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
-                // Only actionable reminders belong on Home. Full bill
-                // schedules remain in their own screens.
-                Builder(builder: (context) {
-                  final today = DateTime(now.year, now.month, now.day);
-                  final horizon = today.add(const Duration(days: 7));
-                  final statements = _dataService.getCardStatements()
-                      .where((bill) => !bill.isPaid &&
-                          (_scopeFilter == null || bill.scope == _scopeFilter) &&
-                          bill.dueDate.isBefore(horizon.add(const Duration(days: 1))))
-                      .toList()
-                    ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-                  final recurring = upcomingRecurringBills(
-                    _dataService.getRecurringTransactions(activeOnly: true),
-                    scope: _scopeFilter,
-                    days: 7,
-                  );
-                  final entries = <({DateTime date, String label, String detail, bool card})>[
-                    ...statements.map((bill) => (
-                      date: bill.dueDate,
-                      label: bill.cardName,
-                      detail: bill.isOverdue ? S.t.overdueCreditCard : S.t.creditCardStatement,
-                      card: true,
-                    )),
-                    ...recurring.map((bill) => (
-                      date: bill.dueDate,
-                      label: bill.rule.description,
-                      detail: S.t.scheduledExpense,
-                      card: false,
-                    )),
-                  ]..sort((a, b) => a.date.compareTo(b.date));
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [
-                            Icon(Icons.notifications_active_outlined,
-                                color: AppTheme.accentAmber, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(S.t.billsNeedingAttention,
-                                style: AppTheme.headingSmall)),
-                            Text(S.t.billsNextSevenDays(entries.length),
-                                style: AppTheme.caption),
-                          ]),
-                          const SizedBox(height: 8),
-                          if (entries.isEmpty)
-                            Text(S.t.noBillsDueSoon,
-                                style: AppTheme.bodySmall),
-                          ...entries.take(2).map((entry) => InkWell(
-                            onTap: () async {
-                              await Navigator.push(context, MaterialPageRoute(
-                                builder: (_) => entry.card
-                                    ? CreditCardBillsScreen(initialScope: _scopeFilter)
-                                    : UpcomingBillsScreen(initialScope: _scopeFilter),
-                              ));
-                              _refresh();
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 7),
-                              child: Row(children: [
-                                Expanded(child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(entry.label, style: AppTheme.bodyMedium,
-                                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    Text(entry.detail, style: AppTheme.caption),
-                                  ],
-                                )),
-                                const SizedBox(width: 6),
-                                Text('${entry.date.day}/${entry.date.month}',
-                                    style: AppTheme.bodySmall),
-                                Icon(Icons.chevron_right,
-                                    color: AppTheme.textTertiary, size: 18),
-                              ]),
-                            ),
-                          )),
-                          if (entries.length > 2)
-                            Text(S.t.moreBillsDueSoon(entries.length - 2),
-                                style: AppTheme.caption),
-                          const SizedBox(height: 4),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 0,
-                            children: [
-                              TextButton(
-                                onPressed: () async {
-                                  await Navigator.push(context, MaterialPageRoute(
-                                    builder: (_) => UpcomingBillsScreen(initialScope: _scopeFilter),
-                                  ));
-                                  _refresh();
-                                },
-                                child: Text(S.t.recurringBills),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  await Navigator.push(context, MaterialPageRoute(
-                                    builder: (_) => CreditCardBillsScreen(initialScope: _scopeFilter),
-                                  ));
-                                  _refresh();
-                                },
-                                child: Text(S.t.creditCards),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
 
                 // Budget alerts are retained below, but the full budget card
                 // and analytics insights belong to their respective screens.
