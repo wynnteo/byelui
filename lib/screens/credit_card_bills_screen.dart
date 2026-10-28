@@ -6,6 +6,7 @@ import '../services/bill_notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
+import '../i18n/s.dart';
 
 class CreditCardBillsScreen extends StatefulWidget {
   final TransactionScope? initialScope;
@@ -52,11 +53,11 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete card statement?'),
-        content: const Text('This only removes the reminder. No expense transactions are affected.'),
+        title: Text(S.t.deleteCardStatement),
+        content: Text(S.t.deleteCardExplanation),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(S.t.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(S.t.delete)),
         ],
       ),
     );
@@ -75,7 +76,7 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       appBar: AppBar(
-        title: const Text('Credit card bills'),
+        title: Text(S.t.creditCardBills),
         backgroundColor: AppTheme.primaryCharcoal,
       ),
       floatingActionButton: FloatingActionButton(
@@ -87,19 +88,19 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
         children: [
           ScopeToggle(value: _scope, onChanged: (v) => setState(() => _scope = v)),
           const SizedBox(height: 12),
-          Text('$unpaid unpaid statement${unpaid == 1 ? '' : 's'}', style: AppTheme.headingSmall),
+          Text(S.t.unpaidStatements(unpaid), style: AppTheme.headingSmall),
           const SizedBox(height: 6),
           Text(
-            'Statement payments are reminders only. Marking paid does not add another expense.',
+            S.t.cardStatementExplainer,
             style: AppTheme.caption,
           ),
           const SizedBox(height: 16),
           if (items.isEmpty)
-            GlassCard(child: Text('No credit card statements. Tap + to add one.', style: AppTheme.bodyMedium)),
+            GlassCard(child: Text(S.t.noCardStatements, style: AppTheme.bodyMedium)),
           ...items.map((s) {
             final date = s.dueDate;
             final dueText = '${date.day}/${date.month}/${date.year}';
-            final status = s.isPaid ? 'Paid' : s.isOverdue ? 'Overdue' : 'Unpaid';
+            final status = s.isPaid ? S.t.paid : s.isOverdue ? S.t.overdue : S.t.unpaid;
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: GlassCard(
@@ -115,8 +116,8 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
                     ]),
                     const SizedBox(height: 8),
                     Text('${s.currency} ${s.statementAmount.toStringAsFixed(2)}', style: AppTheme.numeral(size: 22)),
-                    Text('Minimum: ${s.currency} ${s.minimumPayment.toStringAsFixed(2)}', style: AppTheme.bodySmall),
-                    Text('Due $dueText · ${s.scope == TransactionScope.family ? 'Family' : 'Personal'}', style: AppTheme.caption),
+                    Text(S.t.minimumPaymentAmount(s.currency, s.minimumPayment.toStringAsFixed(2)), style: AppTheme.bodySmall),
+                    Text(S.t.billDueScope(dueText, s.scope == TransactionScope.family ? S.t.family : S.t.personal), style: AppTheme.caption),
                     if (s.note != null && s.note!.isNotEmpty)
                       Text(s.note!, style: AppTheme.caption, maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 8),
@@ -124,12 +125,12 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
                       TextButton.icon(
                         onPressed: () => _toggle(s),
                         icon: Icon(s.isPaid ? Icons.undo : Icons.check_circle_outline),
-                        label: Text(s.isPaid ? 'Mark unpaid' : 'Mark paid'),
+                        label: Text(s.isPaid ? S.t.markUnpaid : S.t.markPaid),
                       ),
                       TextButton.icon(
                         onPressed: () => _remove(s),
                         icon: const Icon(Icons.delete_outline),
-                        label: const Text('Delete'),
+                        label: Text(S.t.delete),
                       ),
                     ]),
                   ],
@@ -193,8 +194,8 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
     final amount = double.parse(_amount.text.trim());
     final minimum = double.parse(_minimum.text.trim());
     if (!amount.isFinite || !minimum.isFinite || amount < 0 || minimum < 0 || minimum > amount) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Minimum payment must be between 0 and the statement amount.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(S.t.invalidMinimumRange),
       ));
       return;
     }
@@ -220,7 +221,7 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save statement: $e')),
+        SnackBar(content: Text(S.t.couldNotSaveStatement('$e'))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -233,7 +234,7 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
     final selected = cards.any((c) => c.id == _cardId) ? _cardId : null;
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
-      appBar: AppBar(title: Text(widget.existing == null ? 'Add card statement' : 'Edit card statement'),
+      appBar: AppBar(title: Text(widget.existing == null ? S.t.addCardStatement : S.t.editCardStatement),
         backgroundColor: AppTheme.primaryCharcoal),
       body: Form(
         key: _formKey,
@@ -247,9 +248,9 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
               value: selected,
               isExpanded: true,
               dropdownColor: AppTheme.primaryCharcoal,
-              decoration: const InputDecoration(labelText: 'Saved payment card (optional)'),
+              decoration: InputDecoration(labelText: S.t.savedPaymentCardOptional),
               items: [
-                const DropdownMenuItem<String>(value: '', child: Text('Other / enter card name')),
+                DropdownMenuItem<String>(value: '', child: Text(S.t.otherCardName)),
                 ...cards.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
               ],
               onChanged: (v) {
@@ -263,38 +264,38 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _name,
-              decoration: const InputDecoration(labelText: 'Card / bank name'),
-              validator: (v) => v == null || v.trim().isEmpty ? 'Enter a card name' : null,
+              decoration: InputDecoration(labelText: S.t.cardBankName),
+              validator: (v) => v == null || v.trim().isEmpty ? S.t.enterCardName : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _currency, dropdownColor: AppTheme.primaryCharcoal,
-              decoration: const InputDecoration(labelText: 'Currency'),
+              decoration: InputDecoration(labelText: S.t.currencyLabel),
               items: {...['SGD', 'MYR', 'USD'], _currency}.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
               onChanged: (v) => setState(() => _currency = v ?? _currency),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _amount, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Statement amount'),
+              decoration: InputDecoration(labelText: S.t.statementAmount),
               validator: (v) {
                 final n = double.tryParse(v?.trim() ?? '');
-                return n == null || !n.isFinite || n < 0 ? 'Enter a valid statement amount' : null;
+                return n == null || !n.isFinite || n < 0 ? S.t.invalidStatementAmount : null;
               },
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _minimum, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Minimum payment'),
+              decoration: InputDecoration(labelText: S.t.minimumPayment),
               validator: (v) {
                 final n = double.tryParse(v?.trim() ?? '');
-                return n == null || !n.isFinite || n < 0 ? 'Enter a valid minimum payment' : null;
+                return n == null || !n.isFinite || n < 0 ? S.t.invalidMinimumPayment : null;
               },
             ),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.event),
-              title: const Text('Payment due date'),
+              title: Text(S.t.paymentDueDate),
               subtitle: Text('${_dueDate.day}/${_dueDate.month}/${_dueDate.year}'),
               onTap: () async {
                 final picked = await showDatePicker(
@@ -305,10 +306,10 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
               },
             ),
             TextFormField(controller: _note, maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Note (optional)')),
+              decoration: InputDecoration(labelText: S.t.noteOptional)),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: _saving ? null : _save,
-              child: Text(_saving ? 'Saving...' : 'Save statement')),
+              child: Text(_saving ? S.t.saving : S.t.saveStatement)),
           ],
         ),
       ),
