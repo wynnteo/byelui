@@ -1015,4 +1015,6 @@ class EnStrings extends AppStrings {
 
   @override
   String billReminderNotification(String type, int days) => '$type due in $days day${days == 1 ? '' : 's'}';
+  @override
+  String get moreOptions => "More options";
 }

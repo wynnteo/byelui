@@ -38,6 +38,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Category? _selectedCategory;
   String? _photoPath;
   bool _saving = false;
+  bool _showMoreOptions = false;
+  bool _categoryChosen = false;
+  bool _paymentChosen = false;
+  bool _currencyChosen = false;
   List<String> _tags = [];
   List<String> _suggestedTags = [];
   List<String> _matchingExistingTags = [];
@@ -69,15 +73,19 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final history = _dataService.getTransactions(scope: _scope, type: _type);
     final recent = _recentCategories();
     final allCategories = _dataService.getCategories(type: _type);
-    _selectedCategory = recent.isNotEmpty
-        ? recent.first
-        : (allCategories.isNotEmpty ? allCategories.first : null);
-    _paymentCardId = null;
-    _paymentMethod = null;
+    if (!_categoryChosen) {
+      _selectedCategory = recent.isNotEmpty
+          ? recent.first
+          : (allCategories.isNotEmpty ? allCategories.first : null);
+    }
+    if (!_paymentChosen) {
+      _paymentCardId = null;
+      _paymentMethod = null;
+    }
     if (history.isEmpty) return;
 
     // Use the last valid payment source, but never select a deleted card.
-    for (final t in history) {
+    if (!_paymentChosen) for (final t in history) {
       if (t.paymentCardId != null) {
         final card = _dataService.getPaymentCardById(t.paymentCardId!);
         if (card != null && card.isActive) {
@@ -89,7 +97,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         break;
       }
     }
-    if (_currencies.contains(history.first.currency)) {
+    if (!_currencyChosen && _currencies.contains(history.first.currency)) {
       _currency = history.first.currency;
     }
   }
@@ -100,6 +108,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _scope = widget.initialScope ?? TransactionScope.personal;
     final t = widget.existing;
     if (t != null) {
+      _showMoreOptions = true;
       _amountController.text = t.amount.toStringAsFixed(2);
       _descriptionController.text = t.description;
       _noteController.text = t.note ?? '';
@@ -170,7 +179,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final category = await showCreateCategoryDialog(context, type: _type);
     if (category == null) return;
     await _dataService.addCategory(category);
-    setState(() => _selectedCategory = category);
+    setState(() {
+      _categoryChosen = true;
+      _selectedCategory = category;
+    });
   }
 
   Future<void> _manageCategory(Category category) async {
@@ -241,8 +253,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   void _onTypeChanged(TransactionType type) {
+    if (_type == type) return;
     setState(() {
       _type = type;
+      // Income and expense have different category lists. Always choose
+      // a valid category for the new type; scope changes preserve choices.
+      _categoryChosen = false;
       if (widget.existing == null) {
         _applyRecentDefaults();
       } else {
@@ -261,6 +277,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   void _selectCard(String cardId) {
     setState(() {
+      _paymentChosen = true;
       _paymentCardId = cardId;
       _paymentMethod = null;
     });
@@ -268,6 +285,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   void _selectGenericMethod(PaymentMethod method) {
     setState(() {
+      _paymentChosen = true;
       _paymentMethod = method;
       _paymentCardId = null;
     });
@@ -579,10 +597,22 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               items: _currencies
                                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                                   .toList(),
-                              onChanged: (v) => setState(() => _currency = v ?? _currency),
+                              onChanged: (v) => setState(() {
+                                _currencyChosen = true;
+                                _currency = v ?? _currency;
+                              }),
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Text(S.t.whoIsThisFor, style: AppTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      ScopeToggle(
+                        value: _scope,
+                        includeAllOption: false,
+                        onChanged: (v) => _onScopeChanged(v ?? TransactionScope.personal),
                       ),
                       const SizedBox(height: 16),
 
@@ -618,7 +648,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               side: BorderSide(
                                 color: selected ? category.color : AppTheme.glassBorder,
                               ),
-                              onPressed: () => setState(() => _selectedCategory = category),
+                              onPressed: () => setState(() {
+                                _categoryChosen = true;
+                                _selectedCategory = category;
+                              }),
                             );
                           }).toList(),
                         ),
@@ -633,7 +666,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           ...categories.map((c) {
                             final selected = c.id == _selectedCategory?.id;
                             return GestureDetector(
-                              onTap: () => setState(() => _selectedCategory = c),
+                              onTap: () => setState(() {
+                              _categoryChosen = true;
+                              _selectedCategory = c;
+                            }),
                               onLongPress: () => _manageCategory(c),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -678,6 +714,32 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       Text(S.t.longPressCategoryHint, style: AppTheme.caption),
                       const SizedBox(height: 16),
 
+                      TextField(
+                        controller: _descriptionController,
+                        style: AppTheme.bodyLarge,
+                        decoration: AppTheme.glassInputDecoration(hintText: S.t.descriptionHint),
+                      ),
+                      const SizedBox(height: 12),
+
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => setState(() => _showMoreOptions = !_showMoreOptions),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            children: [
+                              Icon(_showMoreOptions ? Icons.expand_less : Icons.expand_more,
+                                  color: AppTheme.accentAmber),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(S.t.moreOptions,
+                                  style: AppTheme.bodyLarge)),
+                              Icon(_showMoreOptions ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                  color: AppTheme.textSecondary),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_showMoreOptions) ...[
                       Text(S.t.paidWith, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
@@ -748,15 +810,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      Text(S.t.whoIsThisFor, style: AppTheme.bodySmall),
-                      const SizedBox(height: 8),
-                      ScopeToggle(
-                        value: _scope,
-                        includeAllOption: false,
-                        onChanged: (v) => _onScopeChanged(v ?? TransactionScope.personal),
-                      ),
-                      const SizedBox(height: 16),
-
                       GlassCard(
                         onTap: _pickDate,
                         child: Row(
@@ -817,13 +870,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
-                      TextField(
-                        controller: _descriptionController,
-                        style: AppTheme.bodyLarge,
-                        decoration: AppTheme.glassInputDecoration(hintText: S.t.descriptionHint),
-                      ),
-                      const SizedBox(height: 12),
 
                       TextField(
                         controller: _noteController,
@@ -946,6 +992,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               ),
                       ),
                       const SizedBox(height: 24),
+                      ],
                     ],
                   ),
                 ),

@@ -1015,4 +1015,6 @@ class ZhStrings extends AppStrings {
 
   @override
   String billReminderNotification(String type, int days) => '$type 还有$days天到期';
+  @override
+  String get moreOptions => "更多选项";
 }
