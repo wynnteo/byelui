@@ -98,36 +98,47 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // The hero always follows the selected Personal/Family/All filter.
                 GlassCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(S.t.thisMonth, style: AppTheme.bodySmall),
                       const SizedBox(height: 4),
+                      Text('Net cash flow', style: AppTheme.bodyMedium),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${income - expense >= 0 ? '+' : '-'}$base ${(income - expense).abs().toStringAsFixed(2)}',
+                          style: AppTheme.numeral(
+                            size: 30,
+                            weight: FontWeight.w700,
+                            color: income >= expense ? AppTheme.successColor : AppTheme.errorColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(S.t.income, style: AppTheme.bodySmall),
-                                Text(
-                                  '$base ${income.toStringAsFixed(2)}',
-                                  style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.successColor),
-                                ),
-                              ],
+                            child: _CashFlowMetric(
+                              label: S.t.income,
+                              amount: income,
+                              currency: base,
+                              color: AppTheme.successColor,
+                              icon: Icons.arrow_downward_rounded,
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(S.t.expense, style: AppTheme.bodySmall),
-                                Text(
-                                  '$base ${expense.toStringAsFixed(2)}',
-                                  style: AppTheme.numeral(size: 18, weight: FontWeight.w600, color: AppTheme.stampText),
-                                ),
-                              ],
+                            child: _CashFlowMetric(
+                              label: S.t.expense,
+                              amount: expense,
+                              currency: base,
+                              color: AppTheme.stampText,
+                              icon: Icons.arrow_upward_rounded,
                             ),
                           ),
                         ],
@@ -135,6 +146,102 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+
+                // The combined view compares the two accounts without treating
+                // Family as a category or counting any transactions twice.
+                if (_scopeFilter == null) ...[
+                  Builder(builder: (context) {
+                    final personal = _dataService.monthlyTotals(
+                      now.year, now.month, scope: TransactionScope.personal,
+                    )['expense'] ?? 0.0;
+                    final family = _dataService.monthlyTotals(
+                      now.year, now.month, scope: TransactionScope.family,
+                    )['expense'] ?? 0.0;
+                    final combined = personal + family;
+                    return GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Expenses by account', style: AppTheme.headingSmall),
+                          const SizedBox(height: 12),
+                          _AccountExpenseLine(
+                            label: 'Personal', amount: personal, total: combined,
+                            currency: base, color: AppTheme.accentAmber,
+                          ),
+                          const SizedBox(height: 10),
+                          _AccountExpenseLine(
+                            label: 'Family', amount: family, total: combined,
+                            currency: base, color: AppTheme.primaryCoral,
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                ],
+
+                Builder(builder: (context) {
+                  final breakdown = _dataService.categoryBreakdown(
+                    now.year, now.month, scope: _scopeFilter,
+                  );
+                  final top = breakdown.entries.where((entry) => entry.value > 0)
+                      .toList()..sort((a, b) => b.value.compareTo(a.value));
+                  if (top.isEmpty) return const SizedBox.shrink();
+                  final shown = top.take(3).toList();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassCard(
+                      onTap: () async {
+                        await Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+                        _refresh();
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Expanded(child: Text('Top spending categories',
+                                style: AppTheme.headingSmall)),
+                            Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                          ]),
+                          const SizedBox(height: 10),
+                          ...shown.map((entry) {
+                            final category = _dataService.getCategoryById(entry.key);
+                            final ratio = expense <= 0 ? 0.0 : (entry.value / expense).clamp(0.0, 1.0);
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    Expanded(child: Text(
+                                      category?.displayName ?? 'Other',
+                                      style: AppTheme.bodySmall,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    )),
+                                    const SizedBox(width: 8),
+                                    Text('$base ${entry.value.toStringAsFixed(2)}',
+                                        style: AppTheme.bodySmall),
+                                  ]),
+                                  const SizedBox(height: 4),
+                                  LinearProgressIndicator(
+                                    value: ratio,
+                                    minHeight: 5,
+                                    borderRadius: BorderRadius.circular(4),
+                                    color: category?.color ?? AppTheme.accentAmber,
+                                    backgroundColor: AppTheme.glassBackground,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
                 const SizedBox(height: 12),
 
                 Builder(builder: (context) {
@@ -464,6 +571,75 @@ class _HomeScreenState extends State<HomeScreen> {
 /// A round, tinted icon button with a caption — used for the top-of-home
 /// shortcuts to Analytics / Budget / All transactions, so they're obvious
 /// at a glance instead of buried as text links further down the page.
+
+class _CashFlowMetric extends StatelessWidget {
+  final String label;
+  final double amount;
+  final String currency;
+  final Color color;
+  final IconData icon;
+  const _CashFlowMetric({
+    required this.label,
+    required this.amount,
+    required this.currency,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(children: [
+        Icon(icon, color: color, size: 15),
+        const SizedBox(width: 4),
+        Flexible(child: Text(label, style: AppTheme.bodySmall,
+          maxLines: 1, overflow: TextOverflow.ellipsis)),
+      ]),
+      const SizedBox(height: 4),
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text('$currency ${amount.toStringAsFixed(2)}',
+          style: AppTheme.numeral(size: 18, color: color, weight: FontWeight.w600)),
+      ),
+    ],
+  );
+}
+
+class _AccountExpenseLine extends StatelessWidget {
+  final String label;
+  final double amount;
+  final double total;
+  final String currency;
+  final Color color;
+  const _AccountExpenseLine({
+    required this.label, required this.amount, required this.total,
+    required this.currency, required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = total <= 0 ? 0.0 : (amount / total).clamp(0.0, 1.0);
+    return Column(
+      children: [
+        Row(children: [
+          Expanded(child: Text(label, style: AppTheme.bodySmall)),
+          Text('$currency ${amount.toStringAsFixed(2)}', style: AppTheme.bodySmall),
+        ]),
+        const SizedBox(height: 5),
+        LinearProgressIndicator(
+          value: fraction,
+          minHeight: 6,
+          borderRadius: BorderRadius.circular(4),
+          color: color,
+          backgroundColor: AppTheme.glassBackground,
+        ),
+      ],
+    );
+  }
+}
+
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
