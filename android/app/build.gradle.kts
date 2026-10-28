@@ -1,17 +1,14 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Signing secrets must stay in an untracked android/key.properties.
-val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
-    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
-}
+// Reuse the existing MyLui keystore without android/key.properties.
+// Keep passwords out of this public repository: set BYELUI_KEY_PASSWORD
+// and BYELUI_STORE_PASSWORD in the environment before release builds.
+val releaseKeyPassword = System.getenv("BYELUI_KEY_PASSWORD") ?: ""
+val releaseStorePassword = System.getenv("BYELUI_STORE_PASSWORD") ?: ""
 
 android {
     namespace = "com.cloudfullstack.byelui"
@@ -25,14 +22,11 @@ android {
     }
 
     signingConfigs {
-        val required = listOf("keyAlias", "keyPassword", "storeFile", "storePassword")
-        if (required.all { !keystoreProperties.getProperty(it).isNullOrBlank() }) {
-            create("release") {
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
-                storeFile = file(keystoreProperties.getProperty("storeFile"))
-                storePassword = keystoreProperties.getProperty("storePassword")
-            }
+        create("release") {
+            keyAlias = "my-key-alias"
+            keyPassword = releaseKeyPassword
+            storeFile = file("/Users/wynnteo/my-release-key.jks")
+            storePassword = releaseStorePassword
         }
     }
 
@@ -50,8 +44,8 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            // No debug-key fallback for release builds.
-            signingConfig = signingConfigs.findByName("release")
+            // Always sign with release key; missing credentials fail the build.
+            signingConfig = signingConfigs.getByName("release")
         }
 
         debug {
