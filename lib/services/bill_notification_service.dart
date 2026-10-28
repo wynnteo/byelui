@@ -5,6 +5,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import 'data_service.dart';
 import '../models/category.dart';
+import '../i18n/s.dart';
 
 /// Local, opt-in, inexact reminders. Notification IDs are tracked so a paid,
 /// edited or deleted bill cannot leave a stale scheduled alert behind.
@@ -85,7 +86,7 @@ class BillNotificationService {
         key: 'card:${bill.id}',
         label: bill.cardName,
         due: bill.dueDate,
-        type: 'Credit card statement',
+        type: S.t.creditCardStatement,
       ));
     }
 
@@ -99,7 +100,7 @@ class BillNotificationService {
         key: 'recurring:${bill.id}:${due.year}-${due.month}-${due.day}',
         label: bill.description,
         due: due,
-        type: 'Scheduled recurring expense',
+        type: S.t.scheduledRecurringExpense,
       ));
     }
 
@@ -116,7 +117,7 @@ class BillNotificationService {
       try {
         await _plugin.zonedSchedule(
           id,
-          '${event.type} due in $daysBefore day${daysBefore == 1 ? '' : 's'}',
+          S.t.billReminderNotification(event.type, daysBefore),
           event.label,
           tz.TZDateTime.from(localTime, tz.UTC),
           _details,
