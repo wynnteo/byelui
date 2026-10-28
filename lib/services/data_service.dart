@@ -125,6 +125,20 @@ class DataService {
   bool get isPremium => _settingsBoxSafe.get('isPremium', defaultValue: false);
   set isPremium(bool value) => _settingsBoxSafe.put('isPremium', value);
 
+  // Local device preferences: intentionally excluded from backups.
+  bool get billRemindersEnabled =>
+      _settingsBoxSafe.get('billRemindersEnabled', defaultValue: false) == true;
+
+  Future<void> setBillRemindersEnabled(bool value) =>
+      _settingsBoxSafe.put('billRemindersEnabled', value);
+
+  List<int> get billNotificationIds =>
+      (_settingsBoxSafe.get('billNotificationIds') as List? ?? [])
+          .map((value) => (value as num).toInt()).toList();
+
+  Future<void> setBillNotificationIds(List<int> ids) =>
+      _settingsBoxSafe.put('billNotificationIds', ids);
+
   // ---- Categories ----
 
   Future<void> _initializeDefaultCategories() async {

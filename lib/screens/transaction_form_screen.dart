@@ -5,6 +5,7 @@ import '../models/category.dart';
 import '../models/recurring_transaction.dart';
 import '../models/payment_card.dart';
 import '../services/data_service.dart';
+import '../services/bill_notification_service.dart';
 import '../services/photo_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
@@ -464,6 +465,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           await _saveRecurringRule(created);
         }
       }
+      if (_isRecurring) await BillNotificationService.instance.syncSafely();
       if (mounted) Navigator.pop(context, true);
     } finally {
       if (mounted) setState(() => _saving = false);

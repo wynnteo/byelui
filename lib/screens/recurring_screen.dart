@@ -3,6 +3,7 @@ import '../models/transaction.dart';
 import '../models/category.dart';
 import '../models/recurring_transaction.dart';
 import '../services/data_service.dart';
+import '../services/bill_notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
@@ -35,11 +36,13 @@ class _RecurringScreenState extends State<RecurringScreen> {
 
   Future<void> _toggleActive(RecurringTransaction r) async {
     await _dataService.updateRecurringTransaction(r.copyWith(isActive: !r.isActive));
+    await BillNotificationService.instance.syncSafely();
     _refresh();
   }
 
   Future<void> _delete(RecurringTransaction r) async {
     await _dataService.deleteRecurringTransaction(r.id);
+    await BillNotificationService.instance.syncSafely();
     _refresh();
   }
 
@@ -314,6 +317,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
         paymentCardId: _paymentCardId,
       );
     }
+    await BillNotificationService.instance.syncSafely();
     if (mounted) Navigator.pop(context);
   }
 
