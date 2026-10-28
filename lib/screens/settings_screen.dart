@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/data_service.dart';
+import '../services/bill_notification_service.dart';
 import '../services/security_service.dart';
 import '../services/biometric_service.dart';
 import '../services/theme_controller.dart';
@@ -48,6 +49,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _biometricEnabled = enabled;
       _securityLoading = false;
     });
+  }
+
+  bool _reminderBusy = false;
+
+  Future<void> _toggleBillReminders(bool enabled) async {
+    if (_reminderBusy) return;
+    setState(() => _reminderBusy = true);
+    try {
+      if (enabled) {
+        final granted = await BillNotificationService.instance.requestPermission();
+        if (!granted) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Notification permission was not granted.')),
+          );
+          return;
+        }
+      }
+      await _dataService.setBillRemindersEnabled(enabled);
+      await BillNotificationService.instance.syncSafely();
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update reminders: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _reminderBusy = false);
+    }
   }
 
   Future<void> _toggleBiometric(bool value) async {
@@ -118,6 +145,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (v == null) return;
                         setState(() => _dataService.baseCurrency = v);
                       },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Text('Bill notifications', style: AppTheme.bodySmall),
+              const SizedBox(height: 8),
+              GlassCard(
+                child: Row(
+                  children: [
+                    const Icon(Icons.notifications_active_outlined,
+                        color: AppTheme.accentAmber),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Payment due reminders', style: AppTheme.bodyLarge),
+                        Text('Notify 7, 3 and 1 day before due date (around 9 AM)',
+                            style: AppTheme.caption),
+                      ],
+                    )),
+                    Switch(
+                      value: _dataService.billRemindersEnabled,
+                      onChanged: _reminderBusy ? null : _toggleBillReminders,
                     ),
                   ],
                 ),
