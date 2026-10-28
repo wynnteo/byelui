@@ -1004,4 +1004,19 @@ class ZhStrings extends AppStrings {
   @override
   String couldNotUpdateReminders(String message) => '无法更新提醒：$message';
 
+
+  @override
+  String get recentlyUsed => "最近使用";
+
+  @override
+  String get billReminderChannel => "账单提醒";
+
+  @override
+  String get billReminderChannelDescription => "信用卡及定期账单到期提醒";
+
+  @override
+  String get scheduledRecurringExpense => "计划中的定期支出";
+
+  @override
+  String billReminderNotification(String type, int days) => '$type 还有$days天到期';
 }
