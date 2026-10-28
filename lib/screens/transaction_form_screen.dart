@@ -591,7 +591,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           children: [
                             Icon(Icons.history, size: 16, color: AppTheme.accentAmber),
                             const SizedBox(width: 6),
-                            Text('Recently used', style: AppTheme.bodySmall),
+                            Text(S.t.recentlyUsed, style: AppTheme.bodySmall),
                           ],
                         ),
                         const SizedBox(height: 8),
