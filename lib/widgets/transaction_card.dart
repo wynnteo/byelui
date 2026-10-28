@@ -67,28 +67,31 @@ class TransactionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Row(
+                // Metadata can be wider than a narrow phone, especially with
+                // long categories, payment labels and the Family indicator.
+                // Wrap onto a new line instead of overflowing the Row.
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(
-                      category?.displayName ?? S.t.other,
-                      style: AppTheme.bodySmall,
-                    ),
-                    Text(' · ', style: AppTheme.bodySmall),
+                    Text(category?.displayName ?? S.t.other, style: AppTheme.bodySmall),
+                    Text('·', style: AppTheme.bodySmall),
                     Text(S.dayMonth(transaction.date), style: AppTheme.bodySmall),
                     if (paymentLabel != null) ...[
-                      Text(' · ', style: AppTheme.bodySmall),
+                      Text('·', style: AppTheme.bodySmall),
                       Icon(Icons.credit_card, size: 11, color: paymentColor ?? AppTheme.textTertiary),
-                      const SizedBox(width: 2),
-                      Text(paymentLabel, style: AppTheme.bodySmall.copyWith(color: paymentColor ?? AppTheme.textSecondary)),
+                      Text(
+                        paymentLabel,
+                        style: AppTheme.bodySmall.copyWith(color: paymentColor ?? AppTheme.textSecondary),
+                      ),
                     ],
                     if (transaction.scope == TransactionScope.family) ...[
-                      Text(' · ', style: AppTheme.bodySmall),
+                      Text('·', style: AppTheme.bodySmall),
                       Text(S.t.family, style: AppTheme.bodySmall.copyWith(color: AppTheme.accentAmber)),
                     ],
-                    if (transaction.hasPhoto) ...[
-                      const SizedBox(width: 4),
+                    if (transaction.hasPhoto)
                       Icon(Icons.photo_camera, size: 12, color: AppTheme.textTertiary),
-                    ],
                   ],
                 ),
                 if (transaction.tags.isNotEmpty) ...[
@@ -103,9 +106,16 @@ class TransactionCard extends StatelessWidget {
                           color: AppTheme.primaryCoral.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          tag,
-                          style: AppTheme.caption.copyWith(color: AppTheme.stampText, fontSize: 10),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.sizeOf(context).width * 0.42,
+                          ),
+                          child: Text(
+                            tag,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.caption.copyWith(color: AppTheme.stampText, fontSize: 10),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -115,14 +125,19 @@ class TransactionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width * 0.38,
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
                 '$sign${transaction.currency} ${transaction.amount.toStringAsFixed(2)}',
+                maxLines: 1,
                 style: AppTheme.bodyLarge.copyWith(color: amountColor, fontWeight: FontWeight.w600),
               ),
-            ],
+            ),
           ),
           if (transaction.hasPhoto) ...[
             const SizedBox(width: 8),
