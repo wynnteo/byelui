@@ -413,13 +413,14 @@ class DataService {
     String? note,
     required RecurrenceFrequency frequency,
     required DateTime startDate,
+    String? id,
     DateTime? endDate,
     PaymentMethod? paymentMethod,
     List<String>? tags,
     String? paymentCardId,
   }) async {
     final recurring = RecurringTransaction(
-      id: const Uuid().v4(),
+      id: id ?? const Uuid().v4(),
       amount: amount,
       currency: currency,
       type: type,
@@ -438,6 +439,8 @@ class DataService {
     await _recurringBoxSafe.put(recurring.id, recurring);
     return recurring;
   }
+
+  RecurringTransaction? getRecurringTransactionById(String id) => _recurringBoxSafe.get(id);
 
   Future<void> updateRecurringTransaction(RecurringTransaction recurring) async {
     await _recurringBoxSafe.put(recurring.id, recurring);
