@@ -6,6 +6,7 @@ import '../models/category.dart';
 import '../models/recurring_transaction.dart';
 import '../models/budget.dart';
 import '../models/payment_card.dart';
+import 'credit_card_statement.dart';
 import '../theme/app_theme.dart';
 import '../i18n/s.dart';
 
@@ -888,6 +889,33 @@ class DataService {
     };
   }
 
+  // ---- Credit card statement reminders (never included in expense totals) ----
+  static const _statementKey = 'creditCardStatements';
+
+  List<CreditCardStatement> getCardStatements() {
+    final raw = _settingsBoxSafe.get(_statementKey);
+    if (raw == null) return [];
+    return (raw as List).map((item) => CreditCardStatement.fromJson(
+      Map<String, dynamic>.from(item as Map),
+    )).toList();
+  }
+
+  Future<void> saveCardStatement(CreditCardStatement statement) async {
+    final items = getCardStatements();
+    items.removeWhere((item) => item.id == statement.id);
+    items.add(statement);
+    await _settingsBoxSafe.put(
+      _statementKey, items.map((item) => item.toJson()).toList(),
+    );
+  }
+
+  Future<void> deleteCardStatement(String id) async {
+    final items = getCardStatements()..removeWhere((item) => item.id == id);
+    await _settingsBoxSafe.put(
+      _statementKey, items.map((item) => item.toJson()).toList(),
+    );
+  }
+
   // ---- Full data backup / restore ----
   // Note: photo files themselves are NOT included, only their stored local
   // path — receipt photos won't carry over to a new device, only the
@@ -947,6 +975,7 @@ class DataService {
             'monthlyLimit': b.monthlyLimit,
             'scope': b.scope.toJson(),
           }).toList(),
+      'creditCardStatements': getCardStatements().map((s) => s.toJson()).toList(),
       'paymentCards': _paymentCardsBoxSafe.values.map((c) => {
             'id': c.id,
             'name': c.name,
@@ -1000,6 +1029,7 @@ class DataService {
     final budgets = <String, Budget>{};
     String? newBaseCurrency;
     Map<String, String>? newTagKeywords;
+    final importedStatements = <CreditCardStatement>[];
 
     try {
       for (final raw in (data['categories'] as List? ?? [])) {
@@ -1087,6 +1117,17 @@ class DataService {
         budgets[budget.id] = budget;
       }
 
+      // Optional for existing version 1.0 backups, required to be a List if present.
+      final statementsRaw = data['creditCardStatements'];
+      if (statementsRaw != null && statementsRaw is! List) {
+        throw const FormatException('Invalid creditCardStatements section');
+      }
+      for (final raw in (statementsRaw as List? ?? [])) {
+        importedStatements.add(CreditCardStatement.fromJson(
+          Map<String, dynamic>.from(raw as Map),
+        ));
+      }
+
       final settings = Map<String, dynamic>.from(data['settings'] as Map? ?? {});
       if (settings['baseCurrency'] is String) newBaseCurrency = settings['baseCurrency'] as String;
       if (settings['tagKeywords'] is Map) {
@@ -1106,6 +1147,7 @@ class DataService {
     final oldCards = _paymentCardsBoxSafe.toMap();
     final oldBaseCurrency = baseCurrency;
     final oldTagKeywords = _settingsBoxSafe.get('tagKeywords');
+    final oldStatements = _settingsBoxSafe.get(_statementKey);
 
     try {
       await _transactionsBoxSafe.clear();
@@ -1120,6 +1162,8 @@ class DataService {
       await _recurringBoxSafe.putAll(recurring);
       await _budgetsBoxSafe.putAll(budgets);
 
+      await _settingsBoxSafe.put(_statementKey,
+          importedStatements.map((s) => s.toJson()).toList());
       if (newBaseCurrency != null) baseCurrency = newBaseCurrency;
       if (newTagKeywords != null) await _settingsBoxSafe.put('tagKeywords', newTagKeywords);
     } catch (_) {
@@ -1134,6 +1178,11 @@ class DataService {
       await _budgetsBoxSafe.putAll(oldBudgets);
       await _paymentCardsBoxSafe.putAll(oldCards);
       baseCurrency = oldBaseCurrency;
+      if (oldStatements == null) {
+        await _settingsBoxSafe.delete(_statementKey);
+      } else {
+        await _settingsBoxSafe.put(_statementKey, oldStatements);
+      }
       if (oldTagKeywords != null) {
         await _settingsBoxSafe.put('tagKeywords', oldTagKeywords);
       } else {

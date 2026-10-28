@@ -13,6 +13,7 @@ import 'settings_screen.dart';
 import 'all_transactions_screen.dart';
 import 'budgets_screen.dart';
 import 'upcoming_bills_screen.dart';
+import 'credit_card_bills_screen.dart';
 import '../i18n/s.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -173,6 +174,42 @@ class _HomeScreenState extends State<HomeScreen> {
                         Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                       ],
                     ),
+                  );
+                }),
+                const SizedBox(height: 12),
+
+                Builder(builder: (context) {
+                  final statements = _dataService.getCardStatements()
+                      .where((bill) => !bill.isPaid &&
+                          (_scopeFilter == null || bill.scope == _scopeFilter))
+                      .toList();
+                  final overdue = statements.where((bill) => bill.isOverdue).length;
+                  return GlassCard(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) =>
+                            CreditCardBillsScreen(initialScope: _scopeFilter)),
+                      );
+                      _refresh();
+                    },
+                    child: Row(children: [
+                      Icon(Icons.credit_card_outlined, color: AppTheme.accentAmber),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Credit card bills', style: AppTheme.headingSmall),
+                          Text(
+                            overdue > 0
+                              ? '$overdue overdue · ${statements.length} unpaid'
+                              : '${statements.length} unpaid statement${statements.length == 1 ? '' : 's'}',
+                            style: AppTheme.bodySmall,
+                          ),
+                        ],
+                      )),
+                      Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    ]),
                   );
                 }),
                 const SizedBox(height: 12),
