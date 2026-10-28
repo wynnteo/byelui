@@ -920,8 +920,6 @@ class ZhStrings extends AppStrings {
   @override
   String get cardBankName => "卡片／银行名称";
 
-  @override
-  String get enterCardName => "请输入卡片名称";
 
   @override
   String get currencyLabel => "货币";
@@ -935,8 +933,6 @@ class ZhStrings extends AppStrings {
   @override
   String get paymentDueDate => "付款到期日";
 
-  @override
-  String get noteOptional => "备注（可选）";
 
   @override
   String get saveStatement => "保存账单";
