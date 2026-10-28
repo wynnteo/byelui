@@ -839,4 +839,180 @@ class EnStrings extends AppStrings {
 
   @override
   String insightBiggest(String base, String amount, String desc, String? cat) => "Your biggest expense this month was $base $amount on \"$desc\"${cat != null ? ' ($cat)' : ''}.";
+  @override
+  String get netCashFlow => "Net cash flow";
+
+  @override
+  String get billsNeedingAttention => "Bills needing attention";
+
+  @override
+  String get noBillsDueSoon => "No bills due in the next 7 days";
+
+  @override
+  String get overdueCreditCard => "Overdue · Credit card";
+
+  @override
+  String get creditCardStatement => "Credit card statement";
+
+  @override
+  String get scheduledExpense => "Scheduled expense";
+
+  @override
+  String get recurringBills => "Recurring bills";
+
+  @override
+  String get creditCards => "Credit cards";
+
+  @override
+  String get upcomingBills => "Upcoming bills";
+
+  @override
+  String get scheduledExpensesOnly => "Next 30 days · Scheduled expenses only";
+
+  @override
+  String get upcomingExplainer => "These are expected payments, not confirmed unpaid bills. They are not added to expenses until recorded as transactions.";
+
+  @override
+  String get noUpcomingRecurring => "No upcoming recurring expenses. Add a recurring expense to see it here.";
+
+  @override
+  String get creditCardBills => "Credit card bills";
+
+  @override
+  String get deleteCardStatement => "Delete card statement?";
+
+  @override
+  String get deleteCardExplanation => "This only removes the reminder. No expense transactions are affected.";
+
+  @override
+  String get cardStatementExplainer => "Statement payments are reminders only. Marking paid does not add another expense.";
+
+  @override
+  String get noCardStatements => "No credit card statements. Tap + to add one.";
+
+  @override
+  String get paid => "Paid";
+
+  @override
+  String get unpaid => "Unpaid";
+
+  @override
+  String get overdue => "Overdue";
+
+  @override
+  String get markPaid => "Mark paid";
+
+  @override
+  String get markUnpaid => "Mark unpaid";
+
+  @override
+  String get addCardStatement => "Add card statement";
+
+  @override
+  String get editCardStatement => "Edit card statement";
+
+  @override
+  String get savedPaymentCardOptional => "Saved payment card (optional)";
+
+  @override
+  String get otherCardName => "Other / enter card name";
+
+  @override
+  String get cardBankName => "Card / bank name";
+
+
+  @override
+  String get currencyLabel => "Currency";
+
+  @override
+  String get statementAmount => "Statement amount";
+
+  @override
+  String get minimumPayment => "Minimum payment";
+
+  @override
+  String get paymentDueDate => "Payment due date";
+
+
+  @override
+  String get saveStatement => "Save statement";
+
+  @override
+  String get saving => "Saving...";
+
+  @override
+  String get invalidStatementAmount => "Enter a valid statement amount";
+
+  @override
+  String get invalidMinimumPayment => "Enter a valid minimum payment";
+
+  @override
+  String get invalidMinimumRange => "Minimum payment must be between 0 and the statement amount.";
+
+  @override
+  String get billNotifications => "Bill notifications";
+
+  @override
+  String get paymentDueReminders => "Payment due reminders";
+
+  @override
+  String get oneReminderAroundNine => "One alert per bill, around 9 AM";
+
+  @override
+  String get remindBeforeDue => "Remind me before due date";
+
+  @override
+  String get oneDay => "1 day";
+
+  @override
+  String get threeDays => "3 days";
+
+  @override
+  String get notificationPermissionDenied => "Notification permission was not granted.";
+
+  @override
+  String get analyticsLoadFailed => "Analytics couldn't load. Please screenshot this and send it back:";
+
+  @override
+  String get previousYear => "Previous year";
+
+  @override
+  String get nextYear => "Next year";
+
+  @override
+  String billsNextSevenDays(int count) => '$count next 7 days';
+
+  @override
+  String moreBillsDueSoon(int count) => 'And $count more due soon';
+
+  @override
+  String unpaidStatements(int count) => '$count unpaid statement${count == 1 ? '' : 's'}';
+
+  @override
+  String minimumPaymentAmount(String currency, String amount) => 'Minimum: $currency $amount';
+
+  @override
+  String billDueScope(String date, String scope) => 'Due $date · $scope';
+
+  @override
+  String couldNotSaveStatement(String message) => 'Could not save statement: $message';
+
+  @override
+  String couldNotUpdateReminders(String message) => 'Could not update reminders: $message';
+
+
+  @override
+  String get recentlyUsed => "Recently used";
+
+  @override
+  String get billReminderChannel => "Bill reminders";
+
+  @override
+  String get billReminderChannelDescription => "Credit card and recurring bill due date reminders";
+
+  @override
+  String get scheduledRecurringExpense => "Scheduled recurring expense";
+
+  @override
+  String billReminderNotification(String type, int days) => '$type due in $days day${days == 1 ? '' : 's'}';
 }

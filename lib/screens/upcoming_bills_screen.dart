@@ -5,6 +5,7 @@ import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
+import '../i18n/s.dart';
 import 'recurring_screen.dart';
 
 typedef UpcomingBill = ({RecurringTransaction rule, DateTime dueDate});
@@ -70,7 +71,7 @@ class _UpcomingBillsScreenState extends State<UpcomingBillsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       appBar: AppBar(
-        title: const Text('Upcoming bills'),
+        title: Text(S.t.upcomingBills),
         backgroundColor: AppTheme.primaryCharcoal,
       ),
       body: ListView(
@@ -78,18 +79,17 @@ class _UpcomingBillsScreenState extends State<UpcomingBillsScreen> {
         children: [
           ScopeToggle(value: _scope, onChanged: (value) => setState(() => _scope = value)),
           const SizedBox(height: 16),
-          Text('Next 30 days · Scheduled expenses only', style: AppTheme.bodySmall),
+          Text(S.t.scheduledExpensesOnly, style: AppTheme.bodySmall),
           const SizedBox(height: 8),
           Text(
-            'These are expected payments, not confirmed unpaid bills. '
-            'They are not added to expenses until recorded as transactions.',
+            S.t.upcomingExplainer,
             style: AppTheme.caption,
           ),
           const SizedBox(height: 16),
           if (items.isEmpty)
             GlassCard(
               child: Text(
-                'No upcoming recurring expenses. Add a recurring expense to see it here.',
+                S.t.noUpcomingRecurring,
                 style: AppTheme.bodyMedium,
               ),
             ),
@@ -97,7 +97,7 @@ class _UpcomingBillsScreenState extends State<UpcomingBillsScreen> {
             final rule = item.rule;
             final date = item.dueDate;
             final category = _data.getCategoryById(rule.categoryId);
-            final formattedDate = '${date.day}/${date.month}/${date.year}';
+            final formattedDate = S.dayMonth(date);
             final card = rule.paymentCardId == null
                 ? null
                 : _data.getPaymentCardById(rule.paymentCardId!);
@@ -121,7 +121,7 @@ class _UpcomingBillsScreenState extends State<UpcomingBillsScreen> {
                         children: [
                           Text(rule.description, style: AppTheme.bodyMedium),
                           Text(
-                            '$formattedDate · ${rule.scope == TransactionScope.personal ? 'Personal' : 'Family'}'
+                            '$formattedDate · ${rule.scope == TransactionScope.personal ? S.t.personal : S.t.family}'
                             '${category == null ? '' : ' · ${category.displayName}'}',
                             style: AppTheme.caption,
                           ),

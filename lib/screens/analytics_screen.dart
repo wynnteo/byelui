@@ -63,7 +63,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Text('Analytics couldn\'t load. Please screenshot this and send it back:', style: AppTheme.bodyLarge),
+                Text(S.t.analyticsLoadFailed, style: AppTheme.bodyLarge),
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
@@ -174,13 +174,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      tooltip: 'Previous year',
+                      tooltip: S.t.previousYear,
                       icon: Icon(Icons.chevron_left, color: AppTheme.textSecondary),
                       onPressed: () => _shiftYear(-1),
                     ),
                     Text('$_selectedYear', style: AppTheme.headingSmall),
                     IconButton(
-                      tooltip: 'Next year',
+                      tooltip: S.t.nextYear,
                       icon: Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                       onPressed: _selectedYear >= now.year ? null : () => _shiftYear(1),
                     ),

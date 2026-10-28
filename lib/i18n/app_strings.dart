@@ -281,4 +281,122 @@ abstract class AppStrings {
   String insightRising(String cat, String pct, String base, String last, String now);
   String insightOverall(String pct, bool more);
   String insightBiggest(String base, String amount, String desc, String? cat);
+  String get netCashFlow;
+
+  String get billsNeedingAttention;
+
+  String get noBillsDueSoon;
+
+  String get overdueCreditCard;
+
+  String get creditCardStatement;
+
+  String get scheduledExpense;
+
+  String get recurringBills;
+
+  String get creditCards;
+
+  String get upcomingBills;
+
+  String get scheduledExpensesOnly;
+
+  String get upcomingExplainer;
+
+  String get noUpcomingRecurring;
+
+  String get creditCardBills;
+
+  String get deleteCardStatement;
+
+  String get deleteCardExplanation;
+
+  String get cardStatementExplainer;
+
+  String get noCardStatements;
+
+  String get paid;
+
+  String get unpaid;
+
+  String get overdue;
+
+  String get markPaid;
+
+  String get markUnpaid;
+
+  String get addCardStatement;
+
+  String get editCardStatement;
+
+  String get savedPaymentCardOptional;
+
+  String get otherCardName;
+
+  String get cardBankName;
+
+
+  String get currencyLabel;
+
+  String get statementAmount;
+
+  String get minimumPayment;
+
+  String get paymentDueDate;
+
+
+  String get saveStatement;
+
+  String get saving;
+
+  String get invalidStatementAmount;
+
+  String get invalidMinimumPayment;
+
+  String get invalidMinimumRange;
+
+  String get billNotifications;
+
+  String get paymentDueReminders;
+
+  String get oneReminderAroundNine;
+
+  String get remindBeforeDue;
+
+  String get oneDay;
+
+  String get threeDays;
+
+  String get notificationPermissionDenied;
+
+  String get analyticsLoadFailed;
+
+  String get previousYear;
+
+  String get nextYear;
+
+  String billsNextSevenDays(int count);
+
+  String moreBillsDueSoon(int count);
+
+  String unpaidStatements(int count);
+
+  String minimumPaymentAmount(String currency, String amount);
+
+  String billDueScope(String date, String scope);
+
+  String couldNotSaveStatement(String message);
+
+  String couldNotUpdateReminders(String message);
+
+
+  String get recentlyUsed;
+
+  String get billReminderChannel;
+
+  String get billReminderChannelDescription;
+
+  String get scheduledRecurringExpense;
+
+  String billReminderNotification(String type, int days);
 }

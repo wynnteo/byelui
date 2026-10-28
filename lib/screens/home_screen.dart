@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(S.t.thisMonth, style: AppTheme.bodySmall),
                       const SizedBox(height: 4),
-                      Text('Net cash flow', style: AppTheme.bodyMedium),
+                      Text(S.t.netCashFlow, style: AppTheme.bodyMedium),
                       const SizedBox(height: 4),
                       FittedBox(
                         fit: BoxFit.scaleDown,
@@ -168,13 +168,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ...statements.map((bill) => (
                       date: bill.dueDate,
                       label: bill.cardName,
-                      detail: bill.isOverdue ? 'Overdue · Credit card' : 'Credit card statement',
+                      detail: bill.isOverdue ? S.t.overdueCreditCard : S.t.creditCardStatement,
                       card: true,
                     )),
                     ...recurring.map((bill) => (
                       date: bill.dueDate,
                       label: bill.rule.description,
-                      detail: 'Scheduled expense',
+                      detail: S.t.scheduledExpense,
                       card: false,
                     )),
                   ]..sort((a, b) => a.date.compareTo(b.date));
@@ -188,14 +188,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             Icon(Icons.notifications_active_outlined,
                                 color: AppTheme.accentAmber, size: 20),
                             const SizedBox(width: 8),
-                            Expanded(child: Text('Bills needing attention',
+                            Expanded(child: Text(S.t.billsNeedingAttention,
                                 style: AppTheme.headingSmall)),
-                            Text('${entries.length} next 7 days',
+                            Text(S.t.billsNextSevenDays(entries.length),
                                 style: AppTheme.caption),
                           ]),
                           const SizedBox(height: 8),
                           if (entries.isEmpty)
-                            Text('No bills due in the next 7 days',
+                            Text(S.t.noBillsDueSoon,
                                 style: AppTheme.bodySmall),
                           ...entries.take(2).map((entry) => InkWell(
                             onTap: () async {
@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           )),
                           if (entries.length > 2)
-                            Text('And ${entries.length - 2} more due soon',
+                            Text(S.t.moreBillsDueSoon(entries.length - 2),
                                 style: AppTheme.caption),
                           const SizedBox(height: 4),
                           Wrap(
@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ));
                                   _refresh();
                                 },
-                                child: const Text('Recurring bills'),
+                                child: Text(S.t.recurringBills),
                               ),
                               TextButton(
                                 onPressed: () async {
@@ -249,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ));
                                   _refresh();
                                 },
-                                child: const Text('Credit cards'),
+                                child: Text(S.t.creditCards),
                               ),
                             ],
                           ),

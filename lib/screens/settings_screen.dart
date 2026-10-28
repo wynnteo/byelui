@@ -61,7 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final granted = await BillNotificationService.instance.requestPermission();
         if (!granted) {
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Notification permission was not granted.')),
+            SnackBar(content: Text(S.t.notificationPermissionDenied)),
           );
           return;
         }
@@ -70,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await BillNotificationService.instance.syncSafely();
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not update reminders: $error')),
+        SnackBar(content: Text(S.t.couldNotUpdateReminders('$error'))),
       );
     } finally {
       if (mounted) setState(() => _reminderBusy = false);
@@ -151,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 20),
 
-              Text('Bill notifications', style: AppTheme.bodySmall),
+              Text(S.t.billNotifications, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
               GlassCard(
                 child: Row(
@@ -162,8 +162,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Payment due reminders', style: AppTheme.bodyLarge),
-                        Text('One alert per bill, around 9 AM',
+                        Text(S.t.paymentDueReminders, style: AppTheme.bodyLarge),
+                        Text(S.t.oneReminderAroundNine,
                             style: AppTheme.caption),
                       ],
                     )),
@@ -179,15 +179,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 GlassCard(
                   child: Row(
                     children: [
-                      Expanded(child: Text('Remind me before due date',
+                      Expanded(child: Text(S.t.remindBeforeDue,
                           style: AppTheme.bodyMedium)),
                       DropdownButton<int>(
                         value: _dataService.billReminderDaysBefore,
                         dropdownColor: AppTheme.primaryCharcoal,
                         underline: const SizedBox(),
-                        items: const [
-                          DropdownMenuItem(value: 1, child: Text('1 day')),
-                          DropdownMenuItem(value: 3, child: Text('3 days')),
+                        items: [
+                          DropdownMenuItem(value: 1, child: Text(S.t.oneDay)),
+                          DropdownMenuItem(value: 3, child: Text(S.t.threeDays)),
                         ],
                         onChanged: _reminderBusy ? null : (days) async {
                           if (days == null) return;
