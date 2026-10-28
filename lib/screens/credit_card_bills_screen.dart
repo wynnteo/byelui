@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/transaction.dart';
 import '../services/credit_card_statement.dart';
 import '../services/data_service.dart';
+import '../services/bill_notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/scope_toggle.dart';
@@ -32,7 +33,10 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
         initialScope: _scope ?? TransactionScope.personal,
       )),
     );
-    if (changed == true && mounted) setState(() {});
+    if (changed == true) {
+      await BillNotificationService.instance.syncSafely();
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _toggle(CreditCardStatement statement) async {
@@ -40,6 +44,7 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
       paid: !statement.isPaid,
       paidAt: statement.isPaid ? null : DateTime.now(),
     ));
+    await BillNotificationService.instance.syncSafely();
     if (mounted) setState(() {});
   }
 
@@ -57,6 +62,7 @@ class _CreditCardBillsScreenState extends State<CreditCardBillsScreen> {
     );
     if (confirmed != true) return;
     await _data.deleteCardStatement(statement.id);
+    await BillNotificationService.instance.syncSafely();
     if (mounted) setState(() {});
   }
 
@@ -210,6 +216,7 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
         paidAt: old?.paidAt,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
       ));
+      await BillNotificationService.instance.syncSafely();
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
