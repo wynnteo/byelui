@@ -920,8 +920,6 @@ class EnStrings extends AppStrings {
   @override
   String get cardBankName => "Card / bank name";
 
-  @override
-  String get enterCardName => "Enter a card name";
 
   @override
   String get currencyLabel => "Currency";
@@ -935,8 +933,6 @@ class EnStrings extends AppStrings {
   @override
   String get paymentDueDate => "Payment due date";
 
-  @override
-  String get noteOptional => "Note (optional)";
 
   @override
   String get saveStatement => "Save statement";
