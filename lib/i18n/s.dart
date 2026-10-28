@@ -7,10 +7,6 @@ import 'strings_zh.dart';
 /// What the user picked in Settings → Language.
 enum AppLanguage { system, en, zh }
 
-/// Global access to the active translation, same idea as AppTheme's
-/// brightness switch: `S.t.addTransaction`. Works anywhere — widgets, models,
-/// services — because it needs no BuildContext. LanguageController swaps the
-/// language and the app rebuilds.
 class S {
   S._();
 
@@ -22,11 +18,8 @@ class S {
 
   static bool get isChinese => identical(_current, _zh);
 
-  /// Locale handed to MaterialApp (date pickers, dialog buttons, etc).
   static Locale get locale => isChinese ? const Locale('zh', 'CN') : const Locale('en');
 
-  /// Sets the concrete language. `AppLanguage.system` follows the phone, and
-  /// only Chinese is special-cased: any other phone language falls back to English.
   static void apply(AppLanguage language) {
     final resolved = language == AppLanguage.system ? systemLanguage() : language;
     _current = resolved == AppLanguage.zh ? _zh : _en;
@@ -35,7 +28,6 @@ class S {
   static AppLanguage systemLanguage() =>
       PlatformDispatcher.instance.locale.languageCode == 'zh' ? AppLanguage.zh : AppLanguage.en;
 
-  // ---- Locale-aware date helpers (patterns live in the string table) ----
   static String _fmt(String pattern, DateTime d) => DateFormat(pattern, _current.localeName).format(d);
 
   static String dayMonth(DateTime d) => _fmt(_current.patDayMonth, d); // 12 Oct | 10月12日

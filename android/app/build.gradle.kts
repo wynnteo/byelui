@@ -1,6 +1,6 @@
+
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -50,9 +50,6 @@ android {
         }
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 }
 
 dependencies {
@@ -60,6 +57,12 @@ dependencies {
     implementation("androidx.work:work-runtime:2.10.0")
     implementation("androidx.core:core:1.15.0")
     implementation("com.google.android.gms:play-services-ads:24.5.0")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 flutter {

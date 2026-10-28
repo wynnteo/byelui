@@ -16,6 +16,8 @@ import 'screens/home_screen.dart';
 import 'screens/lock_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'i18n/language_controller.dart';
+import 'i18n/s.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,8 +43,8 @@ void main() async {
   Hive.registerAdapter(PaymentCardAdapter());
 
   await DataService().initialize();
-  ThemeController().load(); // sets AppTheme brightness before the first frame
-
+  ThemeController().load();
+  LanguageController().load();
   runApp(const ByeLuiApp());
 }
 
@@ -55,24 +57,38 @@ class ByeLuiApp extends StatefulWidget {
 
 class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
   final _theme = ThemeController();
+  final _lang = LanguageController();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _theme.addListener(_onThemeChanged);
+    _theme.addListener(_rebuildAll);
+    _lang.addListener(_rebuildAll);
   }
 
   @override
   void dispose() {
-    _theme.removeListener(_onThemeChanged);
+    _theme.removeListener(_rebuildAll);
+    _lang.removeListener(_rebuildAll);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  /// OS switched light/dark (only matters while the user is on "System").
   @override
   void didChangePlatformBrightness() => _theme.onPlatformBrightnessChanged();
+
+  @override
+  void didChangeLocales(List<Locale>? locales) => _lang.onSystemLocaleChanged();
+
+  void _rebuildAll() {
+    setState(() {});
+    void markDirty(Element el) {
+      el.markNeedsBuild();
+      el.visitChildren(markDirty);
+    }
+    (context as Element).visitChildren(markDirty);
+  }
 
   void _onThemeChanged() {
     setState(() {});
@@ -101,6 +117,7 @@ class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
         Locale('en'),
         Locale('zh'),
       ],
+      locale: S.locale,
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(
           statusBarColor: Colors.transparent,
