@@ -185,7 +185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: _dataService.billReminderDaysBefore,
                         dropdownColor: AppTheme.primaryCharcoal,
                         underline: const SizedBox(),
-                        items: const [
+                        items: [
                           DropdownMenuItem(value: 1, child: Text(S.t.oneDay)),
                           DropdownMenuItem(value: 3, child: Text(S.t.threeDays)),
                         ],
