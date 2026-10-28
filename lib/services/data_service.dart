@@ -454,22 +454,33 @@ class DataService {
     for (final recurring in _recurringBoxSafe.values.toList()) {
       while (recurring.isDue) {
         final dueDate = recurring.nextDueDate ?? recurring.startDate;
-        await addTransaction(
-          amount: recurring.amount,
-          currency: recurring.currency,
-          type: recurring.type,
-          scope: recurring.scope,
-          categoryId: recurring.categoryId,
-          date: dueDate,
-          description: recurring.description,
-          note: recurring.note,
-          paymentMethod: recurring.paymentMethod,
-          // No tags picked on the rule -> pass null so the generated entry
-          // still gets keyword-suggested tags, exactly as before.
-          tags: recurring.tags.isEmpty ? null : List<String>.from(recurring.tags),
-          paymentCardId: recurring.paymentCardId,
-        );
-        created++;
+        // A stable ID makes each scheduled occurrence idempotent. If the app
+        // closes after saving the transaction but before advancing the rule,
+        // the next launch will recognize it instead of creating a duplicate.
+        final occurrenceId = 'recurring:${recurring.id}:${dueDate.toIso8601String()}';
+        if (!_transactionsBoxSafe.containsKey(occurrenceId)) {
+          final now = DateTime.now();
+          final transaction = Transaction(
+            id: occurrenceId,
+            amount: recurring.amount,
+            currency: recurring.currency,
+            type: recurring.type,
+            scope: recurring.scope,
+            categoryId: recurring.categoryId,
+            date: dueDate,
+            description: recurring.description,
+            note: recurring.note,
+            paymentMethod: recurring.paymentMethod,
+            createdAt: now,
+            updatedAt: now,
+            tags: recurring.tags.isEmpty
+                ? suggestTags(recurring.description)
+                : List<String>.from(recurring.tags),
+            paymentCardId: recurring.paymentCardId,
+          );
+          await _transactionsBoxSafe.put(occurrenceId, transaction);
+          created++;
+        }
         final next = recurring.computeNextDate(dueDate);
         recurring.nextDueDate = next;
         await recurring.save();
