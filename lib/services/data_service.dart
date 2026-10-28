@@ -647,6 +647,8 @@ class DataService {
 
     final allCategorySpend = categoryBreakdown(target.year, target.month, scope: scope);
     final totalSpentAll = allCategorySpend.values.fold<double>(0, (a, b) => a + b);
+    // Only transactions covered by a configured category/account budget
+    // consume that budget. Expenses without budgets remain visible separately.
     final unbudgetedSpend = (totalSpentAll - totalSpent).clamp(0, double.infinity);
 
     return {
@@ -654,8 +656,8 @@ class DataService {
       'totalSpent': totalSpent,
       'totalSpentAll': totalSpentAll,
       'unbudgetedSpend': unbudgetedSpend,
-      'remaining': totalBudget - totalSpentAll,
-      'percentAll': totalBudget <= 0 ? 0.0 : (totalSpentAll / totalBudget),
+      'remaining': totalBudget - totalSpent,
+      'percentAll': totalBudget <= 0 ? 0.0 : (totalSpent / totalBudget),
       'overCount': overCount,
       'nearCount': nearCount,
       'budgetCount': progress.length,
