@@ -263,7 +263,7 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
             DropdownButtonFormField<String>(
               value: _currency, dropdownColor: AppTheme.primaryCharcoal,
               decoration: const InputDecoration(labelText: 'Currency'),
-              items: ['SGD', 'MYR', 'USD'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+              items: {...['SGD', 'MYR', 'USD'], _currency}.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
               onChanged: (v) => setState(() => _currency = v ?? _currency),
             ),
             const SizedBox(height: 12),
