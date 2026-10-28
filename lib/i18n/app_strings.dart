@@ -335,7 +335,6 @@ abstract class AppStrings {
 
   String get cardBankName;
 
-  String get enterCardName;
 
   String get currencyLabel;
 
@@ -345,7 +344,6 @@ abstract class AppStrings {
 
   String get paymentDueDate;
 
-  String get noteOptional;
 
   String get saveStatement;
 
