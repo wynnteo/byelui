@@ -391,4 +391,14 @@ abstract class AppStrings {
 
   String couldNotUpdateReminders(String message);
 
+
+  String get recentlyUsed;
+
+  String get billReminderChannel;
+
+  String get billReminderChannelDescription;
+
+  String get scheduledRecurringExpense;
+
+  String billReminderNotification(String type, int days);
 }
