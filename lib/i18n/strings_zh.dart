@@ -839,4 +839,169 @@ class ZhStrings extends AppStrings {
 
   @override
   String insightBiggest(String base, String amount, String desc, String? cat) => "本月最大的一笔支出是“$desc”${cat != null ? '（$cat）' : ''}，金额 $base $amount。";
+  @override
+  String get netCashFlow => "净现金流";
+
+  @override
+  String get billsNeedingAttention => "待关注账单";
+
+  @override
+  String get noBillsDueSoon => "未来7天没有到期账单";
+
+  @override
+  String get overdueCreditCard => "已逾期 · 信用卡";
+
+  @override
+  String get creditCardStatement => "信用卡账单";
+
+  @override
+  String get scheduledExpense => "计划支出";
+
+  @override
+  String get recurringBills => "定期账单";
+
+  @override
+  String get creditCards => "信用卡";
+
+  @override
+  String get upcomingBills => "即将到期的账单";
+
+  @override
+  String get scheduledExpensesOnly => "未来30天 · 仅显示计划支出";
+
+  @override
+  String get upcomingExplainer => "这些是预计支付的款项，不代表已确认未付款。只有记录为交易后才会计入支出。";
+
+  @override
+  String get noUpcomingRecurring => "暂无即将到期的定期支出。新增定期支出后即可在此查看。";
+
+  @override
+  String get creditCardBills => "信用卡账单";
+
+  @override
+  String get deleteCardStatement => "删除信用卡账单？";
+
+  @override
+  String get deleteCardExplanation => "这只会删除提醒，不会影响已有支出记录。";
+
+  @override
+  String get cardStatementExplainer => "账单付款仅用于提醒。标记为已支付不会新增支出记录。";
+
+  @override
+  String get noCardStatements => "暂无信用卡账单。点击 + 新增。";
+
+  @override
+  String get paid => "已支付";
+
+  @override
+  String get unpaid => "未支付";
+
+  @override
+  String get overdue => "已逾期";
+
+  @override
+  String get markPaid => "标记已支付";
+
+  @override
+  String get markUnpaid => "标记未支付";
+
+  @override
+  String get addCardStatement => "新增信用卡账单";
+
+  @override
+  String get editCardStatement => "编辑信用卡账单";
+
+  @override
+  String get savedPaymentCardOptional => "已保存的付款卡（可选）";
+
+  @override
+  String get otherCardName => "其他／输入卡片名称";
+
+  @override
+  String get cardBankName => "卡片／银行名称";
+
+  @override
+  String get enterCardName => "请输入卡片名称";
+
+  @override
+  String get currencyLabel => "货币";
+
+  @override
+  String get statementAmount => "账单金额";
+
+  @override
+  String get minimumPayment => "最低还款额";
+
+  @override
+  String get paymentDueDate => "付款到期日";
+
+  @override
+  String get noteOptional => "备注（可选）";
+
+  @override
+  String get saveStatement => "保存账单";
+
+  @override
+  String get saving => "保存中…";
+
+  @override
+  String get invalidStatementAmount => "请输入有效的账单金额";
+
+  @override
+  String get invalidMinimumPayment => "请输入有效的最低还款额";
+
+  @override
+  String get invalidMinimumRange => "最低还款额必须在0与账单金额之间。";
+
+  @override
+  String get billNotifications => "账单通知";
+
+  @override
+  String get paymentDueReminders => "付款到期提醒";
+
+  @override
+  String get oneReminderAroundNine => "每张账单提醒一次，约上午9点";
+
+  @override
+  String get remindBeforeDue => "提前提醒";
+
+  @override
+  String get oneDay => "1天";
+
+  @override
+  String get threeDays => "3天";
+
+  @override
+  String get notificationPermissionDenied => "未获得通知权限。";
+
+  @override
+  String get analyticsLoadFailed => "分析页面无法加载。请截图并反馈以下错误：";
+
+  @override
+  String get previousYear => "上一年";
+
+  @override
+  String get nextYear => "下一年";
+
+  @override
+  String billsNextSevenDays(int count) => '未来7天有$count笔';
+
+  @override
+  String moreBillsDueSoon(int count) => '另有$count笔即将到期';
+
+  @override
+  String unpaidStatements(int count) => '$count笔未付账单';
+
+  @override
+  String minimumPaymentAmount(String currency, String amount) => '最低还款：$currency $amount';
+
+  @override
+  String billDueScope(String date, String scope) => '到期 $date · $scope';
+
+  @override
+  String couldNotSaveStatement(String message) => '无法保存账单：$message';
+
+  @override
+  String couldNotUpdateReminders(String message) => '无法更新提醒：$message';
+
 }
