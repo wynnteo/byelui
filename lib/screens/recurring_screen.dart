@@ -317,6 +317,7 @@ class _RecurringFormScreenState extends State<RecurringFormScreen> {
         paymentCardId: _paymentCardId,
       );
     }
+    await BillNotificationService.instance.syncSafely();
     if (mounted) Navigator.pop(context);
   }
 
