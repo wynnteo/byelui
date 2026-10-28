@@ -14,6 +14,8 @@ import 'payment_cards_screen.dart';
 import 'pin_setup_screen.dart';
 import 'export_screen.dart';
 import 'backup_screen.dart';
+import 'credit_card_bills_screen.dart';
+import 'upcoming_bills_screen.dart';
 import '../i18n/s.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -310,6 +312,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Icon(Icons.repeat, color: AppTheme.accentAmber),
                     const SizedBox(width: 10),
                     Expanded(child: Text(S.t.recurringTransactions, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              GlassCard(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const UpcomingBillsScreen())),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event_outlined, color: AppTheme.accentAmber),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(S.t.upcomingBills, style: AppTheme.bodyLarge)),
+                    Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              GlassCard(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const CreditCardBillsScreen())),
+                child: Row(
+                  children: [
+                    const Icon(Icons.receipt_long_outlined, color: AppTheme.accentAmber),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(S.t.creditCardBills, style: AppTheme.bodyLarge)),
                     Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                   ],
                 ),
