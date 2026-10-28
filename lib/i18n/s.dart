@@ -35,8 +35,8 @@ class S {
   static String monthYearLong(DateTime d) => _fmt(_current.patMonthYearLong, d); // October 2026 | 2026年10月
   static String monthLong(DateTime d) => _fmt(_current.patMonthLong, d);
   static String monthShort(DateTime d) => _fmt(_current.patMonthShort, d);
-  /// Unambiguous billing date, always DD-MM-YYYY in both languages.
+  /// Short billing date, always DD-MM in both languages.
   static String billingDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year.toString().padLeft(4, '0')}';
+      '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}';
   static String dateFull(DateTime d) => _fmt(_current.patDateFull, d); // Mon, 12 Oct 2026 | 2026年10月12日 周一
 }
