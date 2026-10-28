@@ -103,30 +103,28 @@ class BillNotificationService {
       ));
     }
 
-    // Avoid exceeding common platform pending-notification limits.
-    for (final event in events.take(18)) {
-      for (final daysBefore in const [7, 3, 1]) {
-        final localTime = DateTime(
-          event.due.year, event.due.month, event.due.day - daysBefore, 9,
+    // One alert per bill, at the user's chosen lead time.
+    // Old 7/3/1-day notifications are cancelled above on every sync.
+    final daysBefore = data.billReminderDaysBefore;
+    for (final event in events.take(54)) {
+      final localTime = DateTime(
+        event.due.year, event.due.month, event.due.day - daysBefore, 9,
+      );
+      if (!localTime.isAfter(now)) continue;
+      final id = _idFor('${event.key}:$daysBefore');
+      if (!nextIds.add(id)) continue;
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          '${event.type} due in $daysBefore day${daysBefore == 1 ? '' : 's'}',
+          event.label,
+          tz.TZDateTime.from(localTime, tz.UTC),
+          _details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
-        if (!localTime.isAfter(now)) continue;
-        final id = _idFor('${event.key}:$daysBefore');
-        if (!nextIds.add(id)) continue;
-        try {
-          // Convert an absolute device-local instant into tz.UTC: this
-          // respects the device's current UTC offset without assuming Singapore.
-          await _plugin.zonedSchedule(
-            id,
-            '${event.type} due in $daysBefore day${daysBefore == 1 ? '' : 's'}',
-            event.label,
-            tz.TZDateTime.from(localTime, tz.UTC),
-            _details,
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          );
-        } catch (error) {
-          nextIds.remove(id);
-          debugPrint('Could not schedule bill reminder: $error');
-        }
+      } catch (error) {
+        nextIds.remove(id);
+        debugPrint('Could not schedule bill reminder: $error');
       }
     }
     await data.setBillNotificationIds(nextIds.toList());
