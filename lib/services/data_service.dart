@@ -132,6 +132,19 @@ class DataService {
   Future<void> setBillRemindersEnabled(bool value) =>
       _settingsBoxSafe.put('billRemindersEnabled', value);
 
+  /// One notification per bill. Default to 1 day before; only 1 or 3 allowed.
+  int get billReminderDaysBefore {
+    final stored = _settingsBoxSafe.get('billReminderDaysBefore', defaultValue: 1);
+    return stored == 3 ? 3 : 1;
+  }
+
+  Future<void> setBillReminderDaysBefore(int days) {
+    if (days != 1 && days != 3) {
+      throw ArgumentError.value(days, 'days', 'Only 1 or 3 days are supported');
+    }
+    return _settingsBoxSafe.put('billReminderDaysBefore', days);
+  }
+
   List<int> get billNotificationIds =>
       (_settingsBoxSafe.get('billNotificationIds') as List? ?? [])
           .map((value) => (value as num).toInt()).toList();
