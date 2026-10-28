@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/category.dart';
 import '../models/transaction.dart';
 import '../models/recurring_transaction.dart';
 import '../services/data_service.dart';
