@@ -600,10 +600,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             final selected = category.id == _selectedCategory?.id;
                             return ActionChip(
                               avatar: Icon(category.icon, size: 16, color: category.color),
-                              label: Text(
-                                category.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              label: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.sizeOf(context).width * 0.40,
+                                ),
+                                child: Text(
+                                  category.displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               backgroundColor: selected
                                   ? category.color.withOpacity(0.18)
