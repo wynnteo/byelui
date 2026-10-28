@@ -176,12 +176,11 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               Builder(builder: (context) {
                 final summary = _dataService.budgetSummary(scope: _scope, month: _selectedMonth);
                 final totalBudget = summary['totalBudget'] as double;
-                final totalSpentAll = summary['totalSpentAll'] as double;
                 final budgetedSpend = summary['totalSpent'] as double;
                 final unbudgetedSpend = summary['unbudgetedSpend'] as double;
                 final budgetCount = summary['budgetCount'] as int;
                 final percentAll = summary['percentAll'] as double;
-                final over = totalBudget > 0 && totalSpentAll > totalBudget;
+                final over = totalBudget > 0 && budgetedSpend > totalBudget;
 
                 if (budgetCount == 0) {
                   return Padding(
@@ -246,15 +245,15 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '$base ${totalSpentAll.toStringAsFixed(2)}',
+                                    '$base ${budgetedSpend.toStringAsFixed(2)}',
                                     style: AppTheme.numeral(size: 22, weight: FontWeight.w700),
                                   ),
                                   Text('/ $base ${totalBudget.toStringAsFixed(2)}', style: AppTheme.bodyMedium),
                                   const SizedBox(height: 8),
                                   _statusPill(
                                     over
-                                        ? S.t.overBudgetBy('$base ${(totalSpentAll - totalBudget).toStringAsFixed(2)}')
-                                        : S.t.amountLeft('$base ${(totalBudget - totalSpentAll).toStringAsFixed(2)}'),
+                                        ? S.t.overBudgetBy('$base ${(budgetedSpend - totalBudget).toStringAsFixed(2)}')
+                                        : S.t.amountLeft('$base ${(totalBudget - budgetedSpend).toStringAsFixed(2)}'),
                                     over ? AppTheme.errorColor : AppTheme.income,
                                   ),
                                 ],
