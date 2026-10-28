@@ -1,6 +1,5 @@
 import 'package:uuid/uuid.dart';
 import '../models/transaction.dart';
-import 'data_service.dart';
 
 /// A statement reminder, NOT an income/expense transaction.
 /// Recording a credit-card repayment here never changes spending totals.
@@ -108,17 +107,3 @@ class CreditCardStatement {
   );
 }
 
-/// Uses the existing settings Hive box: no new Hive adapter or migration.
-/// Keep writes sequential and use the same service for backups.
-class CreditCardStatementStore {
-  final DataService _data = DataService();
-
-  List<CreditCardStatement> all({TransactionScope? scope}) {
-    final statements = _data.getCardStatements();
-    return (scope == null ? statements : statements.where((s) => s.scope == scope).toList())
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-  }
-
-  Future<void> save(CreditCardStatement statement) => _data.saveCardStatement(statement);
-  Future<void> delete(String id) => _data.deleteCardStatement(id);
-}
