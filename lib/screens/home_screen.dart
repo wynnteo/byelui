@@ -164,9 +164,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     scope: _scopeFilter,
                     days: 7,
                   );
-                  if (statements.isEmpty && recurring.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
                   final entries = <({DateTime date, String label, String detail, bool card})>[
                     ...statements.map((bill) => (
                       date: bill.dueDate,
@@ -197,6 +194,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: AppTheme.caption),
                           ]),
                           const SizedBox(height: 8),
+                          if (entries.isEmpty)
+                            Text('No bills due in the next 7 days',
+                                style: AppTheme.bodySmall),
                           ...entries.take(2).map((entry) => InkWell(
                             onTap: () async {
                               await Navigator.push(context, MaterialPageRoute(
