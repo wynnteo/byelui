@@ -20,6 +20,7 @@ class PortableBackupService {
     final archive = Archive();
     final transactions = payload['transactions'] as List;
     var totalBytes = 0;
+    var receiptCount = 0;
 
     for (final raw in transactions) {
       final transaction = raw as Map<String, dynamic>;
@@ -28,7 +29,7 @@ class PortableBackupService {
       if (oldPath == null || oldPath.isEmpty) continue;
       final photo = File(oldPath);
       if (!await photo.exists()) continue;
-      if (receipts.length >= maxReceiptCount) {
+      if (receiptCount >= maxReceiptCount) {
         throw const FormatException('Too many receipt photos for one backup.');
       }
       final bytes = await photo.readAsBytes();
@@ -42,6 +43,7 @@ class PortableBackupService {
           ? ext : 'jpg';
       final entryName = 'receipts/${const Uuid().v4()}.$safeExt';
       archive.addFile(ArchiveFile(entryName, bytes.length, bytes));
+      receiptCount++;
       transaction['photoPath'] = entryName;
     }
 
