@@ -163,7 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Payment due reminders', style: AppTheme.bodyLarge),
-                        Text('Notify 7, 3 and 1 day before due date (around 9 AM)',
+                        Text('One alert per bill, around 9 AM',
                             style: AppTheme.caption),
                       ],
                     )),
@@ -174,6 +174,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
+              if (_dataService.billRemindersEnabled) ...[
+                const SizedBox(height: 10),
+                GlassCard(
+                  child: Row(
+                    children: [
+                      Expanded(child: Text('Remind me before due date',
+                          style: AppTheme.bodyMedium)),
+                      DropdownButton<int>(
+                        value: _dataService.billReminderDaysBefore,
+                        dropdownColor: AppTheme.primaryCharcoal,
+                        underline: const SizedBox(),
+                        items: const [
+                          DropdownMenuItem(value: 1, child: Text('1 day')),
+                          DropdownMenuItem(value: 3, child: Text('3 days')),
+                        ],
+                        onChanged: _reminderBusy ? null : (days) async {
+                          if (days == null) return;
+                          setState(() => _reminderBusy = true);
+                          try {
+                            await _dataService.setBillReminderDaysBefore(days);
+                            await BillNotificationService.instance.syncSafely();
+                          } finally {
+                            if (mounted) setState(() => _reminderBusy = false);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
 
               Text(S.t.security, style: AppTheme.bodySmall),
