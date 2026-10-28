@@ -176,7 +176,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               Builder(builder: (context) {
                 final summary = _dataService.budgetSummary(scope: _scope, month: _selectedMonth);
                 final totalBudget = summary['totalBudget'] as double;
-                final totalSpentAll = summary['totalSpentAll'] as double;
                 final budgetedSpend = summary['totalSpent'] as double;
                 final unbudgetedSpend = summary['unbudgetedSpend'] as double;
                 final budgetCount = summary['budgetCount'] as int;
