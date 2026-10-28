@@ -13,7 +13,6 @@ import 'settings_screen.dart';
 import 'all_transactions_screen.dart';
 import 'budgets_screen.dart';
 import 'upcoming_bills_screen.dart';
-import 'credit_card_bills_screen.dart';
 import '../i18n/s.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -210,8 +209,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(width: 6),
                                 Text(S.billingDate(entry.date),
                                     style: AppTheme.bodySmall),
-                                Icon(Icons.chevron_right,
-                                    color: AppTheme.textTertiary, size: 18),
                               ]),
                             ),
                           ),
