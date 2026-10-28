@@ -97,7 +97,7 @@ class _UpcomingBillsScreenState extends State<UpcomingBillsScreen> {
             final rule = item.rule;
             final date = item.dueDate;
             final category = _data.getCategoryById(rule.categoryId);
-            final formattedDate = S.dayMonth(date);
+            final formattedDate = S.billingDate(date);
             final card = rule.paymentCardId == null
                 ? null
                 : _data.getPaymentCardById(rule.paymentCardId!);
