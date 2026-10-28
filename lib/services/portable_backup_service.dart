@@ -18,7 +18,6 @@ class PortableBackupService {
   Future<File> createZip() async {
     final payload = data.exportAllData();
     final archive = Archive();
-    final receipts = <String, String>{};
     final transactions = payload['transactions'] as List;
     var totalBytes = 0;
 
@@ -44,7 +43,6 @@ class PortableBackupService {
       final entryName = 'receipts/${const Uuid().v4()}.$safeExt';
       archive.addFile(ArchiveFile(entryName, bytes.length, bytes));
       transaction['photoPath'] = entryName;
-      receipts[entryName] = oldPath;
     }
 
     final jsonBytes = utf8.encode(jsonEncode(payload));
@@ -76,7 +74,7 @@ class PortableBackupService {
       // directly from the archive: generated paths stay inside app documents.
       final name = entry.name;
       if (name != 'backup.json' &&
-          !RegExp(r'^receipts/[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp|heic)$')
+          !RegExp(r'^receipts/[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp|heic)$')
               .hasMatch(name)) {
         throw const FormatException('Invalid ZIP backup entry.');
       }
