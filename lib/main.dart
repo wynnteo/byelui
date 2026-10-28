@@ -9,6 +9,7 @@ import 'models/recurring_transaction.dart';
 import 'models/budget.dart';
 import 'models/payment_card.dart';
 import 'services/data_service.dart';
+import 'services/bill_notification_service.dart';
 import 'services/security_service.dart';
 import 'services/biometric_service.dart';
 import 'services/theme_controller.dart';
@@ -46,6 +47,8 @@ void main() async {
   ThemeController().load();
   LanguageController().load();
   runApp(const ByeLuiApp());
+  // Non-blocking: permission is only requested by an explicit Settings action.
+  BillNotificationService.instance.syncSafely();
 }
 
 class ByeLuiApp extends StatefulWidget {
@@ -73,6 +76,13 @@ class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
     _lang.removeListener(_rebuildAll);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      BillNotificationService.instance.syncSafely();
+    }
   }
 
   @override
