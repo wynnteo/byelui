@@ -253,8 +253,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   void _onTypeChanged(TransactionType type) {
+    if (_type == type) return;
     setState(() {
       _type = type;
+      // Income and expense have different category lists. Always choose
+      // a valid category for the new type; scope changes preserve choices.
+      _categoryChosen = false;
       if (widget.existing == null) {
         _applyRecentDefaults();
       } else {
