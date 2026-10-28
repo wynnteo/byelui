@@ -364,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () async {
             await Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const TransactionFormScreen()),
+              MaterialPageRoute(builder: (_) => TransactionFormScreen(initialScope: _scopeFilter)),
             );
             _refresh();
           },
