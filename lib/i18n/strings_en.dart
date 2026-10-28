@@ -1004,4 +1004,19 @@ class EnStrings extends AppStrings {
   @override
   String couldNotUpdateReminders(String message) => 'Could not update reminders: $message';
 
+
+  @override
+  String get recentlyUsed => "Recently used";
+
+  @override
+  String get billReminderChannel => "Bill reminders";
+
+  @override
+  String get billReminderChannelDescription => "Credit card and recurring bill due date reminders";
+
+  @override
+  String get scheduledRecurringExpense => "Scheduled recurring expense";
+
+  @override
+  String billReminderNotification(String type, int days) => '$type due in $days day${days == 1 ? '' : 's'}';
 }
