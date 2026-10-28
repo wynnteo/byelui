@@ -23,10 +23,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   TransactionScope? _scopeFilter;
   _RangeView _range = _RangeView.month;
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  int _selectedYear = DateTime.now().year;
   bool _vsLastYear = false;
 
   void _shiftMonth(int delta) {
-    setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + delta));
+    final target = DateTime(_selectedMonth.year, _selectedMonth.month + delta);
+    final now = DateTime.now();
+    if (target.isAfter(DateTime(now.year, now.month))) return;
+    setState(() => _selectedMonth = target);
+  }
+
+  void _shiftYear(int delta) {
+    final target = _selectedYear + delta;
+    if (target > DateTime.now().year) return;
+    setState(() => _selectedYear = target);
   }
 
   @override
@@ -76,14 +86,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildContent(BuildContext context) {
     final now = DateTime.now();
     final trend = _range == _RangeView.month
-        ? _dataService.monthlyTrend(6, scope: _scopeFilter)
-        : _dataService.yearlyMonthlyBreakdown(now.year, scope: _scopeFilter);
+        ? _dataService.monthlyTrend(6, scope: _scopeFilter, endingAt: _selectedMonth)
+        : _dataService.yearlyMonthlyBreakdown(_selectedYear, scope: _scopeFilter);
     final breakdown = _range == _RangeView.month
         ? _dataService.categoryBreakdown(_selectedMonth.year, _selectedMonth.month, scope: _scopeFilter)
-        : _dataService.yearlyCategoryBreakdown(now.year, scope: _scopeFilter);
+        : _dataService.yearlyCategoryBreakdown(_selectedYear, scope: _scopeFilter);
     final incomeBreakdown = _range == _RangeView.month
         ? _dataService.categoryBreakdown(_selectedMonth.year, _selectedMonth.month, scope: _scopeFilter, type: TransactionType.income)
-        : _dataService.yearlyCategoryBreakdown(now.year, scope: _scopeFilter, type: TransactionType.income);
+        : _dataService.yearlyCategoryBreakdown(_selectedYear, scope: _scopeFilter, type: TransactionType.income);
     final base = _dataService.baseCurrency;
     final comparison = _dataService.compareMonth(_selectedMonth.year, _selectedMonth.month, scope: _scopeFilter, vsLastYear: _vsLastYear);
     final isCurrentMonth = _selectedMonth.year == now.year && _selectedMonth.month == now.month;
@@ -96,12 +106,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final totalIncome = incomeBreakdown.values.fold<double>(0, (a, b) => a + b);
     List<String> insights = [];
     try {
-      insights = _dataService.monthlyInsights(month: _selectedMonth, scope: _scopeFilter);
+      if (_range == _RangeView.month) {
+        insights = _dataService.monthlyInsights(month: _selectedMonth, scope: _scopeFilter);
+      }
     } catch (e, st) {
       debugPrint('monthlyInsights failed: $e\n$st');
     }
 
-    final highlightYear = _range == _RangeView.month ? _selectedMonth.year : now.year;
+    final highlightYear = _range == _RangeView.month ? _selectedMonth.year : _selectedYear;
     Map<String, dynamic> highlights = {
       'topCategoryId': null,
       'topCategoryAmount': 0.0,
@@ -158,16 +170,33 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(height: 20),
 
               if (_range == _RangeView.year) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      tooltip: 'Previous year',
+                      icon: Icon(Icons.chevron_left, color: AppTheme.textSecondary),
+                      onPressed: () => _shiftYear(-1),
+                    ),
+                    Text('$_selectedYear', style: AppTheme.headingSmall),
+                    IconButton(
+                      tooltip: 'Next year',
+                      icon: Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                      onPressed: _selectedYear >= now.year ? null : () => _shiftYear(1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 GlassCard(
                   child: Builder(builder: (context) {
-                    final yearTotals = _dataService.yearlyTotals(now.year, scope: _scopeFilter);
+                    final yearTotals = _dataService.yearlyTotals(_selectedYear, scope: _scopeFilter);
                     return Row(
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(S.t.yearIncome(now.year), style: AppTheme.bodySmall),
+                              Text(S.t.yearIncome(_selectedYear), style: AppTheme.bodySmall),
                               Text('$base ${(yearTotals['income'] ?? 0).toStringAsFixed(2)}',
                                   style: AppTheme.headingSmall.copyWith(color: AppTheme.successColor)),
                             ],
@@ -177,7 +206,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(S.t.yearExpense(now.year), style: AppTheme.bodySmall),
+                              Text(S.t.yearExpense(_selectedYear), style: AppTheme.bodySmall),
                               Text('$base ${(yearTotals['expense'] ?? 0).toStringAsFixed(2)}',
                                   style: AppTheme.headingSmall.copyWith(color: AppTheme.stampText)),
                             ],
@@ -365,7 +394,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ],
 
               Text(
-                _range == _RangeView.month ? S.t.incomeVsExpense6m : S.t.incomeVsExpenseYear(now.year),
+                _range == _RangeView.month ? S.t.incomeVsExpense6m : S.t.incomeVsExpenseYear(_selectedYear),
                 style: AppTheme.headingSmall,
               ),
               const SizedBox(height: 12),
@@ -620,10 +649,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Builder(builder: (context) {
                 final tagFrom = _range == _RangeView.month
                     ? DateTime(_selectedMonth.year, _selectedMonth.month, 1)
-                    : DateTime(now.year, 1, 1);
+                    : DateTime(_selectedYear, 1, 1);
                 final tagTo = _range == _RangeView.month
                     ? DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59)
-                    : DateTime(now.year, 12, 31, 23, 59, 59);
+                    : DateTime(_selectedYear, 12, 31, 23, 59, 59);
                 final tagData = _dataService.tagBreakdown(from: tagFrom, to: tagTo, scope: _scopeFilter);
                 final sortedTags = tagData.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
                 final topTags = sortedTags.take(5).toList();
@@ -708,10 +737,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Builder(builder: (context) {
                 final srcFrom = _range == _RangeView.month
                     ? DateTime(_selectedMonth.year, _selectedMonth.month, 1)
-                    : DateTime(now.year, 1, 1);
+                    : DateTime(_selectedYear, 1, 1);
                 final srcTo = _range == _RangeView.month
                     ? DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59)
-                    : DateTime(now.year, 12, 31, 23, 59, 59);
+                    : DateTime(_selectedYear, 12, 31, 23, 59, 59);
                 final sources = _dataService.paymentSourceBreakdown(from: srcFrom, to: srcTo, scope: _scopeFilter);
                 final sourceTotal = sources.fold<double>(0, (a, b) => a + (b['amount'] as double));
 
