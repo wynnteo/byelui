@@ -375,17 +375,21 @@ class DataService {
     return _incomeExpenseTotals(DateTime(year, month, 1), DateTime(year, month + 1, 0, 23, 59, 59), scope);
   }
 
-  /// Last [months] months of income/expense totals, oldest first.
-  List<Map<String, dynamic>> monthlyTrend(int months, {TransactionScope? scope}) {
-    final now = DateTime.now();
+  /// [months] months ending at [endingAt] (defaults to the current
+  /// month), oldest first. Used for historical analytics navigation.
+  List<Map<String, dynamic>> monthlyTrend(int months, {
+    TransactionScope? scope,
+    DateTime? endingAt,
+  }) {
+    final end = endingAt ?? DateTime.now();
     final buckets = _incomeExpenseByMonth(
-      DateTime(now.year, now.month - (months - 1), 1),
-      DateTime(now.year, now.month + 1, 0, 23, 59, 59),
+      DateTime(end.year, end.month - (months - 1), 1),
+      DateTime(end.year, end.month + 1, 0, 23, 59, 59),
       scope,
     );
     final result = <Map<String, dynamic>>[];
     for (int i = months - 1; i >= 0; i--) {
-      final date = DateTime(now.year, now.month - i, 1);
+      final date = DateTime(end.year, end.month - i, 1);
       final b = buckets[date.year * 12 + (date.month - 1)];
       result.add({
         'year': date.year,
