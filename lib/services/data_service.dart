@@ -960,11 +960,21 @@ class DataService {
     };
   }
 
-  /// Validates a backup map has the expected top-level shape before import.
+  /// All sections are required: a missing section must not silently become
+  /// an empty collection and erase the user's existing records on restore.
+  static const _requiredBackupLists = [
+    'transactions',
+    'categories',
+    'recurringTransactions',
+    'budgets',
+    'paymentCards',
+  ];
+
   bool isValidBackup(Map<String, dynamic> data) {
-    return data.containsKey('exportVersion') &&
-        data['transactions'] is List &&
-        data['categories'] is List;
+    if (data['exportVersion'] != '1.0' || data['settings'] is! Map) {
+      return false;
+    }
+    return _requiredBackupLists.every((name) => data[name] is List);
   }
 
   /// Replaces ALL local data with the contents of a backup. Irreversible —
@@ -976,6 +986,10 @@ class DataService {
   ///  2. Snapshot the current boxes, swap in the new data, and if the write
   ///     itself fails (disk full, etc.) restore the snapshot and rethrow.
   Future<void> importAllData(Map<String, dynamic> data) async {
+    if (!isValidBackup(data)) {
+      throw const FormatException('Unsupported or incomplete ByeLui backup. No data was changed.');
+    }
+
     // ---- Phase 1: parse (no writes) ----
     final categories = <String, Category>{};
     final transactions = <String, Transaction>{};
@@ -1118,7 +1132,11 @@ class DataService {
       await _budgetsBoxSafe.putAll(oldBudgets);
       await _paymentCardsBoxSafe.putAll(oldCards);
       baseCurrency = oldBaseCurrency;
-      if (oldTagKeywords != null) await _settingsBoxSafe.put('tagKeywords', oldTagKeywords);
+      if (oldTagKeywords != null) {
+        await _settingsBoxSafe.put('tagKeywords', oldTagKeywords);
+      } else {
+        await _settingsBoxSafe.delete('tagKeywords');
+      }
       rethrow;
     }
   }
