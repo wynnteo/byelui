@@ -643,7 +643,7 @@ class EnStrings extends AppStrings {
   String get backupRestore => "Backup & restore";
 
   @override
-  String get backupInfo => "Use this when switching phones. Backup creates a single file with all your transactions, categories, recurring rules, and budgets — share it to yourself (email, Drive, AirDrop, etc), then open it from the new phone's Import.\n\nNote: receipt photos aren't included in the backup file itself, only the transaction data — photos stay on the original device.";
+  String get backupInfo => "Use this when switching phones. Create a ZIP backup with your transactions, categories, recurring bills, budgets and saved receipt photos. Share the ZIP with yourself, then import it on your new phone. Older JSON backups can also be imported, but they do not contain receipt photos.";
 
   @override
   String get createShareBackup => "Create & share backup";
