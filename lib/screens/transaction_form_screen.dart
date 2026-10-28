@@ -294,7 +294,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         startDate: start,
         // Editing the original transaction starts future occurrences one
         // cycle later. No duplicate of the current entry is generated.
-        nextDueDate: existingRule.computeNextDate(start),
+        nextDueDate: existingRule.copyWith(frequency: _recurFrequency).computeNextDate(start),
         paymentMethod: _paymentMethod,
         clearPaymentMethod: _paymentMethod == null,
         paymentCardId: _paymentCardId,
