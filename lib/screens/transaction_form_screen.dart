@@ -47,6 +47,52 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   static const _currencies = ['SGD', 'MYR', 'USD'];
 
+  /// Suggestions are based on real entries, independently for Personal and
+  /// Family. No extra settings, migrations or background tracking required.
+  List<Category> _recentCategories() {
+    if (widget.existing != null) return [];
+    final used = <String>{};
+    final result = <Category>[];
+    for (final t in _dataService.getTransactions(scope: _scope, type: _type)) {
+      if (!used.add(t.categoryId)) continue;
+      final category = _dataService.getCategoryById(t.categoryId);
+      if (category == null || category.type != _type) continue;
+      result.add(category);
+      if (result.length == 4) break;
+    }
+    return result;
+  }
+
+  void _applyRecentDefaults() {
+    if (widget.existing != null) return;
+    final history = _dataService.getTransactions(scope: _scope, type: _type);
+    final recent = _recentCategories();
+    final allCategories = _dataService.getCategories(type: _type);
+    _selectedCategory = recent.isNotEmpty
+        ? recent.first
+        : (allCategories.isNotEmpty ? allCategories.first : null);
+    _paymentCardId = null;
+    _paymentMethod = null;
+    if (history.isEmpty) return;
+
+    // Use the last valid payment source, but never select a deleted card.
+    for (final t in history) {
+      if (t.paymentCardId != null) {
+        final card = _dataService.getPaymentCardById(t.paymentCardId!);
+        if (card != null && card.isActive) {
+          _paymentCardId = card.id;
+          break;
+        }
+      } else if (t.paymentMethod != null) {
+        _paymentMethod = t.paymentMethod;
+        break;
+      }
+    }
+    if (_currencies.contains(history.first.currency)) {
+      _currency = history.first.currency;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -66,8 +112,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _paymentMethod = t.paymentMethod;
       _paymentCardId = t.paymentCardId;
     } else {
-      final cats = _dataService.getCategories(type: _type);
-      _selectedCategory = cats.isNotEmpty ? cats.first : null;
+      _applyRecentDefaults();
     }
     _descriptionController.addListener(_onDescriptionChanged);
     _tagController.addListener(_onTagInputChanged);
@@ -197,8 +242,19 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   void _onTypeChanged(TransactionType type) {
     setState(() {
       _type = type;
-      final cats = _dataService.getCategories(type: type);
-      _selectedCategory = cats.isNotEmpty ? cats.first : null;
+      if (widget.existing == null) {
+        _applyRecentDefaults();
+      } else {
+        final cats = _dataService.getCategories(type: type);
+        _selectedCategory = cats.isNotEmpty ? cats.first : null;
+      }
+    });
+  }
+
+  void _onScopeChanged(TransactionScope scope) {
+    setState(() {
+      _scope = scope;
+      if (widget.existing == null) _applyRecentDefaults();
     });
   }
 
@@ -440,6 +496,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   @override
   Widget build(BuildContext context) {
     final categories = _dataService.getCategories(type: _type);
+    final recentCategories = _recentCategories();
 
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
@@ -527,6 +584,44 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      if (recentCategories.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            Icon(Icons.history, size: 16, color: AppTheme.accentAmber),
+                            const SizedBox(width: 6),
+                            Text('Recently used', style: AppTheme.bodySmall),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: recentCategories.map((category) {
+                            final selected = category.id == _selectedCategory?.id;
+                            return ActionChip(
+                              avatar: Icon(category.icon, size: 16, color: category.color),
+                              label: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.sizeOf(context).width * 0.40,
+                                ),
+                                child: Text(
+                                  category.displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              backgroundColor: selected
+                                  ? category.color.withOpacity(0.18)
+                                  : AppTheme.glassBackground,
+                              side: BorderSide(
+                                color: selected ? category.color : AppTheme.glassBorder,
+                              ),
+                              onPressed: () => setState(() => _selectedCategory = category),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       Text(S.t.category, style: AppTheme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
@@ -656,7 +751,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ScopeToggle(
                         value: _scope,
                         includeAllOption: false,
-                        onChanged: (v) => setState(() => _scope = v ?? TransactionScope.personal),
+                        onChanged: (v) => _onScopeChanged(v ?? TransactionScope.personal),
                       ),
                       const SizedBox(height: 16),
 
