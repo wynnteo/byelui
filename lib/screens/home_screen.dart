@@ -38,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final base = _dataService.baseCurrency;
 
     final from = DateTime(now.year, now.month, 1);
-    final transactions = _dataService.getTransactions(scope: _scopeFilter, from: from).take(10).toList();
+    final transactions = _dataService.getTransactions(scope: _scopeFilter, from: from).take(5).toList();
 
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
@@ -148,334 +148,149 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // The combined view compares the two accounts without treating
-                // Family as a category or counting any transactions twice.
-                if (_scopeFilter == null) ...[
-                  Builder(builder: (context) {
-                    final personal = _dataService.monthlyTotals(
-                      now.year, now.month, scope: TransactionScope.personal,
-                    )['expense'] ?? 0.0;
-                    final family = _dataService.monthlyTotals(
-                      now.year, now.month, scope: TransactionScope.family,
-                    )['expense'] ?? 0.0;
-                    final combined = personal + family;
-                    return GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Expenses by account', style: AppTheme.headingSmall),
-                          const SizedBox(height: 12),
-                          _AccountExpenseLine(
-                            label: 'Personal', amount: personal, total: combined,
-                            currency: base, color: AppTheme.accentAmber,
-                          ),
-                          const SizedBox(height: 10),
-                          _AccountExpenseLine(
-                            label: 'Family', amount: family, total: combined,
-                            currency: base, color: AppTheme.primaryCoral,
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 12),
-                ],
-
+                // Only actionable reminders belong on Home. Full bill
+                // schedules remain in their own screens.
                 Builder(builder: (context) {
-                  final breakdown = _dataService.categoryBreakdown(
-                    now.year, now.month, scope: _scopeFilter,
+                  final today = DateTime(now.year, now.month, now.day);
+                  final horizon = today.add(const Duration(days: 7));
+                  final statements = _dataService.getCardStatements()
+                      .where((bill) => !bill.isPaid &&
+                          (_scopeFilter == null || bill.scope == _scopeFilter) &&
+                          bill.dueDate.isBefore(horizon.add(const Duration(days: 1))))
+                      .toList()
+                    ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+                  final recurring = upcomingRecurringBills(
+                    _dataService.getRecurringTransactions(activeOnly: true),
+                    scope: _scopeFilter,
+                    days: 7,
                   );
-                  final top = breakdown.entries.where((entry) => entry.value > 0)
-                      .toList()..sort((a, b) => b.value.compareTo(a.value));
-                  if (top.isEmpty) return const SizedBox.shrink();
-                  final shown = top.take(3).toList();
+                  final entries = <({DateTime date, String label, String detail, bool card})>[
+                    ...statements.map((bill) => (
+                      date: bill.dueDate,
+                      label: bill.cardName,
+                      detail: bill.isOverdue ? 'Overdue · Credit card' : 'Credit card statement',
+                      card: true,
+                    )),
+                    ...recurring.map((bill) => (
+                      date: bill.dueDate,
+                      label: bill.rule.description,
+                      detail: 'Scheduled expense',
+                      card: false,
+                    )),
+                  ]..sort((a, b) => a.date.compareTo(b.date));
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: GlassCard(
-                      onTap: () async {
-                        await Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
-                        _refresh();
-                      },
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(children: [
-                            Expanded(child: Text('Top spending categories',
+                            Icon(Icons.notifications_active_outlined,
+                                color: AppTheme.accentAmber, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('Bills needing attention',
                                 style: AppTheme.headingSmall)),
-                            Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                            Text('${entries.length} next 7 days',
+                                style: AppTheme.caption),
                           ]),
-                          const SizedBox(height: 10),
-                          ...shown.map((entry) {
-                            final category = _dataService.getCategoryById(entry.key);
-                            final ratio = expense <= 0 ? 0.0 : (entry.value / expense).clamp(0.0, 1.0);
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(children: [
-                                    Expanded(child: Text(
-                                      category?.displayName ?? 'Other',
-                                      style: AppTheme.bodySmall,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    )),
-                                    const SizedBox(width: 8),
-                                    Text('$base ${entry.value.toStringAsFixed(2)}',
-                                        style: AppTheme.bodySmall),
-                                  ]),
-                                  const SizedBox(height: 4),
-                                  LinearProgressIndicator(
-                                    value: ratio,
-                                    minHeight: 5,
-                                    borderRadius: BorderRadius.circular(4),
-                                    color: category?.color ?? AppTheme.accentAmber,
-                                    backgroundColor: AppTheme.glassBackground,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 12),
-
-                Builder(builder: (context) {
-                  final upcoming = upcomingRecurringBills(
-                    _dataService.getRecurringTransactions(activeOnly: true),
-                    scope: _scopeFilter,
-                    days: 30,
-                  );
-                  return GlassCard(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => UpcomingBillsScreen(initialScope: _scopeFilter),
-                        ),
-                      );
-                      _refresh();
-                    },
-                    child: Row(
-                      children: [
-                        Icon(Icons.event_note_outlined, color: AppTheme.accentAmber),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Upcoming bills', style: AppTheme.headingSmall),
-                              Text(
-                                upcoming.isEmpty
-                                    ? 'No scheduled expenses in the next 30 days'
-                                    : '${upcoming.length} scheduled payment${upcoming.length == 1 ? '' : 's'} in the next 30 days',
-                                style: AppTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, color: AppTheme.textTertiary),
-                      ],
-                    ),
-                  );
-                }),
-                const SizedBox(height: 12),
-
-                Builder(builder: (context) {
-                  final statements = _dataService.getCardStatements()
-                      .where((bill) => !bill.isPaid &&
-                          (_scopeFilter == null || bill.scope == _scopeFilter))
-                      .toList();
-                  final overdue = statements.where((bill) => bill.isOverdue).length;
-                  return GlassCard(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) =>
-                            CreditCardBillsScreen(initialScope: _scopeFilter)),
-                      );
-                      _refresh();
-                    },
-                    child: Row(children: [
-                      Icon(Icons.credit_card_outlined, color: AppTheme.accentAmber),
-                      const SizedBox(width: 12),
-                      Expanded(child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Credit card bills', style: AppTheme.headingSmall),
-                          Text(
-                            overdue > 0
-                              ? '$overdue overdue · ${statements.length} unpaid'
-                              : '${statements.length} unpaid statement${statements.length == 1 ? '' : 's'}',
-                            style: AppTheme.bodySmall,
-                          ),
-                        ],
-                      )),
-                      Icon(Icons.chevron_right, color: AppTheme.textTertiary),
-                    ]),
-                  );
-                }),
-                const SizedBox(height: 12),
-
-                Builder(builder: (context) {
-                  final summary = _dataService.budgetSummary(scope: _scopeFilter);
-                  final budgetCount = summary['budgetCount'] as int;
-                  final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-                  final daysLeft = daysInMonth - now.day + 1;
-
-                  if (budgetCount == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GlassCard(
-                        onTap: () async {
-                          await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen()));
-                          _refresh();
-                        },
-                        child: Row(
-                          children: [
-                            const Icon(Icons.add_chart_outlined, color: AppTheme.accentAmber),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(S.t.setBudgetPrompt, style: AppTheme.bodyMedium),
-                            ),
-                            Icon(Icons.chevron_right, color: AppTheme.textTertiary),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  final totalBudget = summary['totalBudget'] as double;
-                  final remaining = summary['remaining'] as double;
-                  final isOverBudget = remaining < 0;
-                  final pct = totalBudget <= 0 ? 0.0 : ((summary['totalSpent'] as double) / totalBudget).clamp(0, 1).toDouble();
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GlassCard(
-                      onTap: () async {
-                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen()));
-                        _refresh();
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isOverBudget ? S.t.overBudgetThisMonth : S.t.leftToSpendThisMonth,
-                            style: AppTheme.bodySmall,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$base ${remaining.abs().toStringAsFixed(2)}',
-                            style: AppTheme.numeral(size: 30, weight: FontWeight.w700).copyWith(
-                              color: isOverBudget ? AppTheme.errorColor : AppTheme.successColor,
-                            ),
-                          ),
                           const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: LinearProgressIndicator(
-                              value: pct,
-                              minHeight: 6,
-                              backgroundColor: AppTheme.glassBackground,
-                              valueColor: AlwaysStoppedAnimation(isOverBudget ? AppTheme.errorColor : AppTheme.accentAmber),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(S.t.daysLeftThisMonth(daysLeft), style: AppTheme.caption),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-
-                Builder(builder: (context) {
-                  final insights = _dataService.monthlyInsights(scope: _scopeFilter).take(2).toList();
-                  if (insights.isEmpty) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.auto_awesome, size: 16, color: AppTheme.accentAmber),
-                              const SizedBox(width: 6),
-                              Text(S.t.insights, style: AppTheme.bodySmall),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ...insights.map((text) => Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
+                          if (entries.isEmpty)
+                            Text('No bills due in the next 7 days',
+                                style: AppTheme.bodySmall),
+                          ...entries.take(2).map((entry) => InkWell(
+                            onTap: () async {
+                              await Navigator.push(context, MaterialPageRoute(
+                                builder: (_) => entry.card
+                                    ? CreditCardBillsScreen(initialScope: _scopeFilter)
+                                    : UpcomingBillsScreen(initialScope: _scopeFilter),
+                              ));
+                              _refresh();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              child: Row(children: [
+                                Expanded(child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('💡 '),
-                                    Expanded(child: Text(text, style: AppTheme.bodyMedium)),
+                                    Text(entry.label, style: AppTheme.bodyMedium,
+                                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    Text(entry.detail, style: AppTheme.caption),
                                   ],
-                                ),
-                              )),
+                                )),
+                                const SizedBox(width: 6),
+                                Text('${entry.date.day}/${entry.date.month}',
+                                    style: AppTheme.bodySmall),
+                                Icon(Icons.chevron_right,
+                                    color: AppTheme.textTertiary, size: 18),
+                              ]),
+                            ),
+                          )),
+                          if (entries.length > 2)
+                            Text('And ${entries.length - 2} more due soon',
+                                style: AppTheme.caption),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 0,
+                            children: [
+                              TextButton(
+                                onPressed: () async {
+                                  await Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => UpcomingBillsScreen(initialScope: _scopeFilter),
+                                  ));
+                                  _refresh();
+                                },
+                                child: const Text('Recurring bills'),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => CreditCardBillsScreen(initialScope: _scopeFilter),
+                                  ));
+                                  _refresh();
+                                },
+                                child: const Text('Credit cards'),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
                   );
                 }),
 
-                // GlassCard(
-                //   onTap: () async {
-                //     await Navigator.push(
-                //       context,
-                //       MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
-                //     );
-                //   },
-                //   child: Row(
-                //     children: [
-                //       const Icon(Icons.bar_chart, color: AppTheme.accentAmber),
-                //       const SizedBox(width: 10),
-                //       Expanded(child: Text('View analytics', style: AppTheme.bodyLarge)),
-                //       const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
-                //     ],
-                //   ),
-                // ),
-                const SizedBox(height: 20),
-
+                // Budget alerts are retained below, but the full budget card
+                // and analytics insights belong to their respective screens.
                 Builder(builder: (context) {
                   final summary = _dataService.budgetSummary(scope: _scopeFilter);
                   final overCount = summary['overCount'] as int;
                   final nearCount = summary['nearCount'] as int;
                   if (overCount == 0 && nearCount == 0) return const SizedBox.shrink();
-
                   final isOver = overCount > 0;
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: GlassCard(
                       onTap: () async {
-                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen()));
+                        await Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => const BudgetsScreen(),
+                        ));
                         _refresh();
                       },
-                      child: Row(
-                        children: [
-                          Icon(Icons.warning_amber_rounded, color: isOver ? AppTheme.errorColor : AppTheme.accentAmber),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              isOver
-                                  ? S.t.budgetsOverLimit(overCount)
-                                  : S.t.budgetsNearLimit(nearCount),
-                              style: AppTheme.bodyMedium.copyWith(color: isOver ? AppTheme.errorColor : AppTheme.accentAmber),
-                            ),
-                          ),
-                          Icon(Icons.chevron_right, color: AppTheme.textTertiary),
-                        ],
-                      ),
+                      child: Row(children: [
+                        Icon(Icons.warning_amber_rounded,
+                            color: isOver ? AppTheme.errorColor : AppTheme.accentAmber),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(
+                          isOver ? S.t.budgetsOverLimit(overCount)
+                              : S.t.budgetsNearLimit(nearCount),
+                          style: AppTheme.bodyMedium,
+                        )),
+                        Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                      ]),
                     ),
                   );
                 }),
+                const SizedBox(height: 12),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -605,39 +420,6 @@ class _CashFlowMetric extends StatelessWidget {
       ),
     ],
   );
-}
-
-class _AccountExpenseLine extends StatelessWidget {
-  final String label;
-  final double amount;
-  final double total;
-  final String currency;
-  final Color color;
-  const _AccountExpenseLine({
-    required this.label, required this.amount, required this.total,
-    required this.currency, required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fraction = total <= 0 ? 0.0 : (amount / total).clamp(0.0, 1.0);
-    return Column(
-      children: [
-        Row(children: [
-          Expanded(child: Text(label, style: AppTheme.bodySmall)),
-          Text('$currency ${amount.toStringAsFixed(2)}', style: AppTheme.bodySmall),
-        ]),
-        const SizedBox(height: 5),
-        LinearProgressIndicator(
-          value: fraction,
-          minHeight: 6,
-          borderRadius: BorderRadius.circular(4),
-          color: color,
-          backgroundColor: AppTheme.glassBackground,
-        ),
-      ],
-    );
-  }
 }
 
 class _QuickAction extends StatelessWidget {
