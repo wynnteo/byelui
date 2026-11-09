@@ -231,7 +231,11 @@ class _CreditCardBillEditorState extends State<CreditCardBillEditor> {
   @override
   Widget build(BuildContext context) {
     final cards = _data.getPaymentCards();
-    final selected = cards.any((c) => c.id == _cardId) ? _cardId : null;
+    // Explicitly represent the no-saved-card choice so the selector can
+    // display and retain it without an ambiguous null value.
+    final selected = cards.any((c) => c.id == _cardId)
+        ? _cardId!
+        : '';
     return Scaffold(
       backgroundColor: AppTheme.primaryCharcoal,
       appBar: AppBar(title: Text(widget.existing == null ? S.t.addCardStatement : S.t.editCardStatement),
