@@ -26,31 +26,32 @@ class ExportService {
     return '';
   }
 
-  /// Shared row layout for CSV and PDF: Date, Type, Category, Amount,
-  /// Description, Paid By, Remarks, Tags, Scope. Amount is signed (negative
-  /// for expenses, positive for income) so it still sums to a net total in
-  /// a spreadsheet; Type spells it out too so it's readable at a glance.
+  /// Shared row layout for CSV and PDF. Transaction amounts retain their
+  /// original currency, while summary totals are converted to base currency.
+  /// Never sum native SGD/MYR/USD transaction amounts as if they were equal.
   /// Sorted newest-first.
   static List<List<String>> _rows(List<Transaction> transactions) {
     final sorted = transactions.toList()..sort((a, b) => b.date.compareTo(a.date));
     final rows = <List<String>>[
-      [S.t.colDate, S.t.type, S.t.category, S.t.colAmount, S.t.colDescription, S.t.colPaidBy, S.t.colRemarks, S.t.tags, S.t.scope],
+      [S.t.colDate, S.t.type, S.t.category, S.t.colAmount, (S.isChinese ? '币种' : 'Currency'), S.t.colDescription, S.t.colPaidBy, S.t.colRemarks, S.t.tags, S.t.scope],
     ];
     double totalIncome = 0;
     double totalExpense = 0;
     for (final t in sorted) {
       final category = _dataService.getCategoryById(t.categoryId);
       final signedAmount = t.isExpense ? -t.amount : t.amount;
+      final converted = _dataService.convertToBase(t.amount, t.currency);
       if (t.isExpense) {
-        totalExpense += t.amount;
+        totalExpense += converted;
       } else {
-        totalIncome += t.amount;
+        totalIncome += converted;
       }
       rows.add([
         DateFormat('yyyy-MM-dd').format(t.date),
         t.isExpense ? S.t.expense : S.t.income,
         category?.displayName ?? S.t.other,
         signedAmount.toStringAsFixed(2),
+        t.currency,
         t.description,
         _paidByLabel(t),
         t.note ?? '',
@@ -59,16 +60,17 @@ class ExportService {
       ]);
     }
 
-    rows.add(['', '', '', '', '', '', '', '', '']);
-    rows.add(['', '', '', totalIncome.toStringAsFixed(2), S.t.totalIncome, '', '', '', '']);
-    rows.add(['', '', '', (-totalExpense).toStringAsFixed(2), S.t.totalExpense, '', '', '', '']);
-    rows.add(['', '', '', (totalIncome - totalExpense).toStringAsFixed(2), S.t.net, '', '', '', '']);
+    final base = _dataService.baseCurrency;
+    rows.add(List<String>.filled(10, ''));
+    rows.add(['', '', '', totalIncome.toStringAsFixed(2), base, S.t.totalIncome, '', '', '', '']);
+    rows.add(['', '', '', (-totalExpense).toStringAsFixed(2), base, S.t.totalExpense, '', '', '', '']);
+    rows.add(['', '', '', (totalIncome - totalExpense).toStringAsFixed(2), base, S.t.net, '', '', '', '']);
     return rows;
   }
 
   /// Writes a CSV file to the app documents' exports folder and returns its path.
   static Future<String> exportCsv(List<Transaction> transactions, {String? fileNamePrefix}) async {
-    final csvString = csv.encode(_rows(transactions));
+    final csvString = csv.encode(_rows(transactions)); // csv ^8 API, pinned in pubspec
     final dir = await getApplicationDocumentsDirectory();
     final exportsDir = Directory('${dir.path}/exports');
     if (!await exportsDir.exists()) await exportsDir.create(recursive: true);
@@ -78,10 +80,8 @@ class ExportService {
     return file.path;
   }
 
-  /// Writes a real .xlsx workbook with columns: Date, Type, Category,
-  /// Amount, Description, Paid By, Remarks, Tags, Scope — sorted
-  /// newest-first. Amount is signed (negative for expenses, positive for
-  /// income) so it still sums to a net total.
+  /// Writes native transaction amounts and currencies to Excel, and
+  /// displays summary totals converted into the configured base currency.
   static Future<String> exportXlsx(List<Transaction> transactions, {String? fileNamePrefix}) async {
     final sorted = transactions.toList()..sort((a, b) => b.date.compareTo(a.date));
     final workbook = xlsx.Excel.createExcel();
@@ -93,6 +93,7 @@ class ExportService {
       xlsx.TextCellValue(S.t.type),
       xlsx.TextCellValue(S.t.category),
       xlsx.TextCellValue(S.t.colAmount),
+      xlsx.TextCellValue((S.isChinese ? '币种' : 'Currency')),
       xlsx.TextCellValue(S.t.colDescription),
       xlsx.TextCellValue(S.t.colPaidBy),
       xlsx.TextCellValue(S.t.colRemarks),
@@ -105,16 +106,18 @@ class ExportService {
     for (final t in sorted) {
       final category = _dataService.getCategoryById(t.categoryId);
       final signedAmount = t.isExpense ? -t.amount : t.amount;
+      final converted = _dataService.convertToBase(t.amount, t.currency);
       if (t.isExpense) {
-        totalExpense += t.amount;
+        totalExpense += converted;
       } else {
-        totalIncome += t.amount;
+        totalIncome += converted;
       }
       sheet.appendRow([
         xlsx.TextCellValue(DateFormat('yyyy-MM-dd').format(t.date)),
         xlsx.TextCellValue(t.isExpense ? S.t.expense : S.t.income),
         xlsx.TextCellValue(category?.displayName ?? S.t.other),
         xlsx.DoubleCellValue(signedAmount),
+        xlsx.TextCellValue(t.currency),
         xlsx.TextCellValue(t.description),
         xlsx.TextCellValue(_paidByLabel(t)),
         xlsx.TextCellValue(t.note ?? ''),
@@ -123,18 +126,18 @@ class ExportService {
       ]);
     }
 
-    sheet.appendRow([xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue('')]);
+    sheet.appendRow(List.generate(10, (_) => xlsx.TextCellValue('')));
     sheet.appendRow([
       xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
-      xlsx.DoubleCellValue(totalIncome), xlsx.TextCellValue(S.t.totalIncome),
+      xlsx.DoubleCellValue(totalIncome), xlsx.TextCellValue(_dataService.baseCurrency), xlsx.TextCellValue(S.t.totalIncome),
     ]);
     sheet.appendRow([
       xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
-      xlsx.DoubleCellValue(-totalExpense), xlsx.TextCellValue(S.t.totalExpense),
+      xlsx.DoubleCellValue(-totalExpense), xlsx.TextCellValue(_dataService.baseCurrency), xlsx.TextCellValue(S.t.totalExpense),
     ]);
     sheet.appendRow([
       xlsx.TextCellValue(''), xlsx.TextCellValue(''), xlsx.TextCellValue(''),
-      xlsx.DoubleCellValue(totalIncome - totalExpense), xlsx.TextCellValue(S.t.net),
+      xlsx.DoubleCellValue(totalIncome - totalExpense), xlsx.TextCellValue(_dataService.baseCurrency), xlsx.TextCellValue(S.t.net),
     ]);
 
     // createExcel() ships with a default empty sheet (usually 'Sheet1') —
@@ -177,7 +180,7 @@ class ExportService {
 
     doc.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: PdfPageFormat.a4.landscape,
         build: (context) => [
           pw.Text(title, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
@@ -202,8 +205,10 @@ class ExportService {
             cellStyle: const pw.TextStyle(fontSize: 8),
             cellAlignment: pw.Alignment.centerLeft,
             columnWidths: {
-              0: const pw.FixedColumnWidth(50),
-              4: const pw.FlexColumnWidth(2),
+              0: const pw.FixedColumnWidth(55),
+              3: const pw.FixedColumnWidth(46),
+              4: const pw.FixedColumnWidth(45),
+              5: const pw.FlexColumnWidth(2),
             },
           ),
         ],
