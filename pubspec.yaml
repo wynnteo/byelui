@@ -54,7 +54,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   crypto: ^3.0.5
   google_mobile_ads: any
-  csv: any
+  csv: ^8.0.0
   pdf: any
   share_plus: any
   file_picker: any
