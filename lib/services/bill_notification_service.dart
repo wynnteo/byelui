@@ -105,6 +105,8 @@ class BillNotificationService {
     }
 
     // One alert per bill, at the user's chosen lead time.
+    // Convert the local DateTime to its UTC instant, rather than treating
+    // 09:00 local time as 09:00 UTC (which shifts Singapore reminders by 8h).
     // Old 7/3/1-day notifications are cancelled above on every sync.
     final daysBefore = data.billReminderDaysBefore;
     for (final event in events.take(54)) {
@@ -119,7 +121,7 @@ class BillNotificationService {
           id,
           S.t.billReminderNotification(event.type, daysBefore),
           event.label,
-          tz.TZDateTime.from(localTime, tz.UTC),
+          tz.TZDateTime.from(localTime.toUtc(), tz.UTC),
           _details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );

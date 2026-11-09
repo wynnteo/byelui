@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/data_service.dart';
 import '../services/bill_notification_service.dart';
 import '../services/security_service.dart';
@@ -29,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _dataService = DataService();
   static const _currencies = ['SGD', 'MYR', 'USD'];
 
+  String _appVersion = '';
   bool _hasPin = false;
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
@@ -38,6 +40,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadSecurityStatus();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _appVersion = info.version);
+    } catch (_) {
+      // Keep the About section usable if platform metadata is unavailable.
+    }
   }
 
   Future<void> _loadSecurityStatus() async {
@@ -388,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(S.t.appName, style: AppTheme.bodyLarge),
                     const SizedBox(height: 4),
-                    Text(S.t.version('1.0.0'), style: AppTheme.bodySmall),
+                    Text(S.t.version(_appVersion.isEmpty ? '—' : _appVersion), style: AppTheme.bodySmall),
                   ],
                 ),
               ),
