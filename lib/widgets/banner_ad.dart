@@ -34,8 +34,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     const production = bool.fromEnvironment('dart.vm.product');
     if (Platform.isIOS) {
       if (!production) return 'ca-app-pub-3940256099942544/2934735716';
-      // Configure the iOS production banner ID after Apple/AdMob registration.
-      return const String.fromEnvironment('BYELUI_IOS_AD_UNIT_ID');
+      // ByeLui iOS production banner ad unit (separate from the AdMob app ID).
+      return 'ca-app-pub-6586968137131686/6917777380';
     }
     if (!production) return 'ca-app-pub-3940256099942544/6300978111';
     return 'ca-app-pub-6586968137131686/1306249287';
@@ -43,7 +43,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   void _loadBannerAd() {
     final unitId = _adUnitId;
-    if (unitId.isEmpty || !mounted) return;
+    if (!mounted) return;
 
     _retryTimer?.cancel();
     _retryTimer = null;
