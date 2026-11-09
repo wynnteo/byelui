@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/data_service.dart';
@@ -32,6 +33,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   }
 
   void _loadBannerAd() {
+    if (_adUnitId.isEmpty) return; // iOS production needs its own AdMob banner ID.
     _bannerAd = BannerAd(
       adUnitId: _adUnitId,
       size: AdSize.banner,
@@ -53,11 +55,16 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   }
 
   String get _adUnitId {
-    if (const bool.fromEnvironment('dart.vm.product')) {
-      return 'ca-app-pub-6586968137131686/1306249287'; // placeholder — swap for prod unit
-    } else {
-      return 'ca-app-pub-3940256099942544/6300978111'; // Google test banner unit
+    const production = bool.fromEnvironment('dart.vm.product');
+    if (Platform.isIOS) {
+      if (!production) return 'ca-app-pub-3940256099942544/2934735716';
+      // Do not serve ads using the Android ad unit on iOS.
+      // Pass --dart-define=BYELUI_IOS_AD_UNIT_ID=<actual iOS banner ID>
+      // after creating ByeLui's iOS app in AdMob.
+      return const String.fromEnvironment('BYELUI_IOS_AD_UNIT_ID');
     }
+    if (!production) return 'ca-app-pub-3940256099942544/6300978111';
+    return 'ca-app-pub-6586968137131686/1306249287'; // Confirm this is the active Android banner unit.
   }
 
   @override
