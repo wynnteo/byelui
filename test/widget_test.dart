@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:byelui/i18n/s.dart';
 import 'package:byelui/models/category.dart';
 import 'package:byelui/models/transaction.dart';
+import 'package:byelui/models/recurring_transaction.dart';
 
 void main() {
   group('Billing dates', () {
@@ -51,4 +52,52 @@ void main() {
       expect(cleared.categoryId, 'groceries');
     });
   });
+  group('Recurring schedule dates', () {
+    RecurringTransaction makeRecurring(
+      DateTime date, RecurrenceFrequency frequency,
+    ) => RecurringTransaction(
+      id: 'test-rule',
+      amount: 10,
+      currency: 'SGD',
+      type: TransactionType.expense,
+      scope: TransactionScope.family,
+      categoryId: 'groceries',
+      description: 'Test bill',
+      frequency: frequency,
+      startDate: date,
+    );
+
+    test('Jan 31 monthly rule lands in February, not March', () {
+      final rule = makeRecurring(
+        DateTime(2026, 1, 31, 9), RecurrenceFrequency.monthly,
+      );
+      expect(rule.computeNextDate(rule.startDate), DateTime(2026, 2, 28, 9));
+    });
+
+    test('Jan 31 monthly rule uses Feb 29 in a leap year', () {
+      final rule = makeRecurring(
+        DateTime(2024, 1, 31, 9), RecurrenceFrequency.monthly,
+      );
+      expect(rule.computeNextDate(rule.startDate), DateTime(2024, 2, 29, 9));
+    });
+
+    test('Leap-day yearly rule does not overflow into March', () {
+      final rule = makeRecurring(
+        DateTime(2024, 2, 29, 9), RecurrenceFrequency.yearly,
+      );
+      expect(rule.computeNextDate(rule.startDate), DateTime(2025, 2, 28, 9));
+    });
+
+    test('Daily and weekly schedules keep their frequency', () {
+      final day = makeRecurring(
+        DateTime(2026, 11, 9, 9), RecurrenceFrequency.daily,
+      );
+      final week = makeRecurring(
+        DateTime(2026, 11, 9, 9), RecurrenceFrequency.weekly,
+      );
+      expect(day.computeNextDate(day.startDate), DateTime(2026, 11, 10, 9));
+      expect(week.computeNextDate(week.startDate), DateTime(2026, 11, 16, 9));
+    });
+  });
+
 }
