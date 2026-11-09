@@ -31,10 +31,9 @@
 	<string>ByeLui lets you choose a receipt photo to attach to your expense.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>ByeLui uses Face ID only if you enable biometric app lock.</string>
-	<!-- Google-provided TEST AdMob app ID. Replace with ByeLui's own iOS
-	     AdMob app ID before App Store release. -->
+	<!-- ByeLui iOS AdMob app ID. Banner units are configured separately in Dart. -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-6586968137131686~7695847446</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
