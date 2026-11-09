@@ -417,8 +417,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   Future<void> _save() async {
+    // Disable concurrent saves before any validation or async database write.
+    if (_saving) return;
     final amount = double.tryParse(_amountController.text.trim());
-    if (amount == null || amount <= 0) {
+    if (amount == null || !amount.isFinite || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(S.t.enterValidAmount)),
       );
@@ -459,6 +461,16 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           clearPaymentCard: _paymentCardId == null,
         );
         await _dataService.updateTransaction(updated);
+        // Only remove the previous receipt once the transaction update
+        // has been persisted. Otherwise an unsuccessful save loses its photo.
+        if (widget.existing!.photoPath != null &&
+            widget.existing!.photoPath != _photoPath) {
+          try {
+            await PhotoService.deletePhoto(widget.existing!.photoPath);
+          } catch (error) {
+            debugPrint('Could not remove superseded receipt: $error');
+          }
+        }
 
         if (_isRecurring) {
           await _saveRecurringRule(updated);
@@ -508,8 +520,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
     if (confirmed != true || widget.existing == null) return;
 
-    await PhotoService.deletePhoto(widget.existing!.photoPath);
+    // Delete the record before its receipt. Failure to persist the deletion
+    // must not leave an existing transaction pointing to a missing file.
     await _dataService.deleteTransaction(widget.existing!.id);
+    try {
+      await PhotoService.deletePhoto(widget.existing!.photoPath);
+    } catch (error) {
+      debugPrint('Could not remove deleted transaction receipt: $error');
+    }
     if (mounted) Navigator.pop(context, true);
   }
 

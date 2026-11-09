@@ -3,6 +3,7 @@ import 'package:byelui/i18n/s.dart';
 import 'package:byelui/models/category.dart';
 import 'package:byelui/models/transaction.dart';
 import 'package:byelui/models/recurring_transaction.dart';
+import 'package:byelui/services/credit_card_statement.dart';
 
 void main() {
   group('Billing dates', () {
@@ -99,6 +100,30 @@ void main() {
       );
       expect(day.computeNextDate(day.startDate), DateTime(2026, 11, 10, 9));
       expect(week.computeNextDate(week.startDate), DateTime(2026, 11, 16, 9));
+    });
+  });
+
+  group('Credit card statement status', () {
+    test('marking paid and unpaid never changes the statement amount', () {
+      final statement = CreditCardStatement(
+        id: 'statement-1',
+        cardName: 'Test card',
+        scope: TransactionScope.family,
+        currency: 'SGD',
+        statementAmount: 250,
+        minimumPayment: 50,
+        dueDate: DateTime(2026, 11, 30),
+      );
+      final paid = statement.copyWith(
+        paid: true,
+        paidAt: DateTime(2026, 11, 9),
+      );
+      expect(paid.isPaid, isTrue);
+      expect(paid.statementAmount, 250);
+      expect(paid.scope, TransactionScope.family);
+      final unpaid = paid.copyWith(paid: false);
+      expect(unpaid.isPaid, isFalse);
+      expect(unpaid.statementAmount, 250);
     });
   });
 
