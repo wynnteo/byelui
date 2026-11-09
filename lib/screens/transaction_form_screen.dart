@@ -417,8 +417,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   Future<void> _save() async {
+    // Disable concurrent saves before any validation or async database write.
+    if (_saving) return;
     final amount = double.tryParse(_amountController.text.trim());
-    if (amount == null || amount <= 0) {
+    if (amount == null || !amount.isFinite || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(S.t.enterValidAmount)),
       );
