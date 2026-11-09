@@ -106,9 +106,18 @@ class RecurringTransaction extends HiveObject {
       case RecurrenceFrequency.weekly:
         return from.add(const Duration(days: 7));
       case RecurrenceFrequency.monthly:
-        return DateTime(from.year, from.month + 1, from.day);
+        // Clamp to the last day of short months: Jan 31 -> Feb 28/29,
+        // instead of Dart's overflow into March.
+        final lastDay = DateTime(from.year, from.month + 2, 0).day;
+        final day = from.day > lastDay ? lastDay : from.day;
+        return DateTime(from.year, from.month + 1, day, from.hour,
+            from.minute, from.second, from.millisecond, from.microsecond);
       case RecurrenceFrequency.yearly:
-        return DateTime(from.year + 1, from.month, from.day);
+        // Handle leap-day occurrences in non-leap years.
+        final lastDay = DateTime(from.year + 1, from.month + 1, 0).day;
+        final day = from.day > lastDay ? lastDay : from.day;
+        return DateTime(from.year + 1, from.month, day, from.hour,
+            from.minute, from.second, from.millisecond, from.microsecond);
     }
   }
 
