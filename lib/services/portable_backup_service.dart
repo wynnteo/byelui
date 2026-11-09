@@ -28,7 +28,12 @@ class PortableBackupService {
       transaction['photoPath'] = null;
       if (oldPath == null || oldPath.isEmpty) continue;
       final photo = File(oldPath);
-      if (!await photo.exists()) continue;
+      // Never report a successful backup if an attached receipt was omitted.
+      if (!await photo.exists()) {
+        throw const FormatException(
+          'An attached receipt photo is missing. Backup was not created.',
+        );
+      }
       if (receiptCount >= maxReceiptCount) {
         throw const FormatException('Too many receipt photos for one backup.');
       }
