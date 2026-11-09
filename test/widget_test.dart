@@ -71,7 +71,9 @@ void main() {
       final rule = makeRecurring(
         DateTime(2026, 1, 31, 9), RecurrenceFrequency.monthly,
       );
-      expect(rule.computeNextDate(rule.startDate), DateTime(2026, 2, 28, 9));
+      final feb = rule.computeNextDate(rule.startDate);
+      expect(feb, DateTime(2026, 2, 28, 9));
+      expect(rule.computeNextDate(feb), DateTime(2026, 3, 31, 9));
     });
 
     test('Jan 31 monthly rule uses Feb 29 in a leap year', () {
