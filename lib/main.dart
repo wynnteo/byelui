@@ -61,6 +61,21 @@ class ByeLuiApp extends StatefulWidget {
 class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
   final _theme = ThemeController();
   final _lang = LanguageController();
+  bool _syncingOnResume = false;
+
+  Future<void> _refreshScheduledEntries() async {
+    if (_syncingOnResume) return;
+    _syncingOnResume = true;
+    try {
+      final created = await DataService().generateDueRecurringTransactions();
+      if (mounted && created > 0) _rebuildAll();
+    } catch (error) {
+      debugPrint('Could not refresh recurring transactions: $error');
+    } finally {
+      _syncingOnResume = false;
+      await BillNotificationService.instance.syncSafely();
+    }
+  }
 
   @override
   void initState() {
@@ -81,7 +96,7 @@ class _ByeLuiAppState extends State<ByeLuiApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      BillNotificationService.instance.syncSafely();
+      _refreshScheduledEntries();
     }
   }
 
