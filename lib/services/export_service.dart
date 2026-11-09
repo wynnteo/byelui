@@ -33,7 +33,7 @@ class ExportService {
   static List<List<String>> _rows(List<Transaction> transactions) {
     final sorted = transactions.toList()..sort((a, b) => b.date.compareTo(a.date));
     final rows = <List<String>>[
-      [S.t.colDate, S.t.type, S.t.category, S.t.colAmount, 'Currency', S.t.colDescription, S.t.colPaidBy, S.t.colRemarks, S.t.tags, S.t.scope],
+      [S.t.colDate, S.t.type, S.t.category, S.t.colAmount, (S.isChinese ? '币种' : 'Currency'), S.t.colDescription, S.t.colPaidBy, S.t.colRemarks, S.t.tags, S.t.scope],
     ];
     double totalIncome = 0;
     double totalExpense = 0;
@@ -93,7 +93,7 @@ class ExportService {
       xlsx.TextCellValue(S.t.type),
       xlsx.TextCellValue(S.t.category),
       xlsx.TextCellValue(S.t.colAmount),
-      xlsx.TextCellValue('Currency'),
+      xlsx.TextCellValue((S.isChinese ? '币种' : 'Currency')),
       xlsx.TextCellValue(S.t.colDescription),
       xlsx.TextCellValue(S.t.colPaidBy),
       xlsx.TextCellValue(S.t.colRemarks),
