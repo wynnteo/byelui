@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/data_service.dart';
 import '../services/portable_backup_service.dart';
+import '../services/bill_notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../i18n/s.dart';
@@ -73,16 +74,18 @@ class _BackupScreenState extends State<BackupScreen> {
             SnackBar(content: Text(S.t.notBackupFile)));
           return;
         }
-        // Never carry stale absolute paths from the old phone.
+        // A JSON-only backup contains no receipt files. Never reuse
+        // absolute paths from the source phone, even if they happen to
+        // exist locally: they could point to unrelated private images.
         for (final raw in data['transactions'] as List) {
           final transaction = raw as Map<String, dynamic>;
-          final path = transaction['photoPath'] as String?;
-          if (path != null && !await File(path).exists()) {
-            transaction['photoPath'] = null;
-          }
+          transaction['photoPath'] = null;
         }
         await _dataService.importAllData(data);
       }
+      // Restored credit-card statements and recurring rules change which
+      // notifications are due. Reconcile old IDs against the new data.
+      await BillNotificationService.instance.syncSafely();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t.backupImported)));
         setState(() {});
