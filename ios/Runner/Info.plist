@@ -24,6 +24,17 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- Required for receipt photos and optional biometric unlock. -->
+	<key>NSCameraUsageDescription</key>
+	<string>ByeLui uses the camera only when you choose to photograph a receipt.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ByeLui lets you choose a receipt photo to attach to your expense.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>ByeLui uses Face ID only if you enable biometric app lock.</string>
+	<!-- Google-provided TEST AdMob app ID. Replace with ByeLui's own iOS
+	     AdMob app ID before App Store release. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
