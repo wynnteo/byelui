@@ -104,16 +104,19 @@ class BillNotificationService {
       ));
     }
 
-    // One alert per bill, at the user's chosen lead time.
-    // Convert the local DateTime to its UTC instant, rather than treating
-    // 09:00 local time as 09:00 UTC (which shifts Singapore reminders by 8h).
-    // Old 7/3/1-day notifications are cancelled above on every sync.
+    // Schedule the nearest future alerts first. Previously events.take(54)
+    // depended on Hive insertion order, so distant bills could crowd out
+    // reminders due sooner. Filter out past alert times before applying the
+    // platform's notification count cap.
     final daysBefore = data.billReminderDaysBefore;
-    for (final event in events.take(54)) {
+    events.sort((a, b) => a.due.compareTo(b.due));
+    var scheduled = 0;
+    for (final event in events) {
       final localTime = DateTime(
         event.due.year, event.due.month, event.due.day - daysBefore, 9,
       );
       if (!localTime.isAfter(now)) continue;
+      if (scheduled >= 54) break;
       final id = _idFor('${event.key}:$daysBefore');
       if (!nextIds.add(id)) continue;
       try {
@@ -125,6 +128,7 @@ class BillNotificationService {
           _details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
+        scheduled++;
       } catch (error) {
         nextIds.remove(id);
         debugPrint('Could not schedule bill reminder: $error');
