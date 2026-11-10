@@ -22,12 +22,17 @@ class AdsConsentService {
       ConsentRequestParameters(),
       () async {
         await _refreshEligibility();
-        await ConsentForm.loadAndShowConsentFormIfRequired((error) async {
-          if (error != null) {
-            debugPrint('Consent form failed: ${error.message}');
-          }
+        try {
+          await ConsentForm.loadAndShowConsentFormIfRequired((error) async {
+            if (error != null) {
+              debugPrint('Consent form failed: ${error.message}');
+            }
+            await _refreshEligibility();
+          });
+        } catch (error) {
+          debugPrint('Could not load consent form: $error');
           await _refreshEligibility();
-        });
+        }
       },
       (error) async {
         debugPrint('Consent information update failed: ${error.message}');
