@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/data_service.dart';
 import '../services/bill_notification_service.dart';
+import '../services/ads_consent_service.dart';
 import '../services/security_service.dart';
 import '../services/biometric_service.dart';
 import '../services/theme_controller.dart';
@@ -41,6 +42,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadSecurityStatus();
     _loadAppVersion();
+    AdsConsentService.instance.privacyOptionsRequired.addListener(_onPrivacyOptionsChanged);
+  }
+
+  void _onPrivacyOptionsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AdsConsentService.instance.privacyOptionsRequired.removeListener(_onPrivacyOptionsChanged);
+    super.dispose();
   }
 
   Future<void> _loadAppVersion() async {
@@ -391,6 +403,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+
+              if (AdsConsentService.instance.privacyOptionsRequired.value) ...[
+                GlassCard(
+                  onTap: () => AdsConsentService.instance.showPrivacyOptions(),
+                  child: Row(
+                    children: [
+                      Icon(Icons.privacy_tip_outlined, color: AppTheme.accentAmber),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(
+                        S.isChinese ? '广告隐私选项' : 'Advertising privacy options',
+                        style: AppTheme.bodyLarge,
+                      )),
+                      Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
 
               Text(S.t.about, style: AppTheme.bodySmall),
               const SizedBox(height: 8),
