@@ -67,11 +67,29 @@ class SwipeableTransactionCard extends StatelessWidget {
             ],
           ),
         );
-        return confirmed == true;
+        if (confirmed != true) return false;
+        // Dismissible removes the row immediately after confirmation.
+        // Complete the database deletion first so a failed write never
+        // removes a visible expense or its attached receipt.
+        try {
+          await DataService().deleteTransaction(transaction.id);
+          return true;
+        } catch (error) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not delete transaction: $error')),
+            );
+          }
+          return false;
+        }
       },
       onDismissed: (_) async {
-        await PhotoService.deletePhoto(transaction.photoPath);
-        await DataService().deleteTransaction(transaction.id);
+        // A failed photo cleanup must never undo an already persisted deletion.
+        try {
+          await PhotoService.deletePhoto(transaction.photoPath);
+        } catch (error) {
+          debugPrint('Could not remove deleted transaction receipt: $error');
+        }
         onChanged();
       },
       child: TransactionCard(transaction: transaction, category: category, onTap: onTap),
