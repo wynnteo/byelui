@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../services/ads_consent_service.dart';
 
 /// One small banner ad. ByeLui is free and has no premium subscription.
 /// Never use Android production ad units for iOS.
@@ -20,11 +21,26 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
-    _loadBannerAd();
+    AdsConsentService.instance.canLoadAds.addListener(_onConsentChanged);
+    if (AdsConsentService.instance.canLoadAds.value) _loadBannerAd();
+  }
+
+  void _onConsentChanged() {
+    if (!mounted) return;
+    if (AdsConsentService.instance.canLoadAds.value) {
+      if (_bannerAd == null) _loadBannerAd();
+    } else {
+      _retryTimer?.cancel();
+      _retryTimer = null;
+      _bannerAd?.dispose();
+      _bannerAd = null;
+      setState(() => _isAdLoaded = false);
+    }
   }
 
   @override
   void dispose() {
+    AdsConsentService.instance.canLoadAds.removeListener(_onConsentChanged);
     _retryTimer?.cancel();
     _bannerAd?.dispose();
     super.dispose();
@@ -43,7 +59,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   void _loadBannerAd() {
     final unitId = _adUnitId;
-    if (!mounted) return;
+    if (!mounted || !AdsConsentService.instance.canLoadAds.value) return;
 
     _retryTimer?.cancel();
     _retryTimer = null;

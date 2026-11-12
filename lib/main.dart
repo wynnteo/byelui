@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'services/ads_consent_service.dart';
 import 'theme/app_theme.dart';
 import 'models/category.dart';
 import 'models/transaction.dart';
@@ -25,12 +25,6 @@ void main() async {
 
   await initializeDateFormatting();
 
-  try {
-    await MobileAds.instance.initialize();
-  } catch (e) {
-    debugPrint('Error initializing Mobile Ads: $e');
-  }
-
   await Hive.initFlutter();
 
   Hive.registerAdapter(TransactionTypeAdapter());
@@ -47,6 +41,10 @@ void main() async {
   ThemeController().load();
   LanguageController().load();
   runApp(const ByeLuiApp());
+  // UMP forms require a foreground Activity/ViewController.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    AdsConsentService.instance.start();
+  });
   // Non-blocking: permission is only requested by an explicit Settings action.
   BillNotificationService.instance.syncSafely();
 }
